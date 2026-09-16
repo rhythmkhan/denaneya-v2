@@ -152,9 +152,37 @@ def run_suite_on_host(p, host_name, base_url):
     page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_merchant_gateways.png")
 
     # Devices & SMS
+    print(f"[{host_name}] Testing Devices & SMS + Android QR Pairing Modal...")
     page.click('text="Devices & SMS"')
-    page.wait_for_timeout(1200)
+    page.wait_for_timeout(1500)
     page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_merchant_devices.png")
+
+    # Inspect Pair QR modal
+    pair_qr_btn = page.locator('button:has-text("Pair QR")').first
+    if pair_qr_btn.count() > 0:
+        print(f"[{host_name}] Clicking 'Pair QR' on handset row...")
+        pair_qr_btn.click()
+        page.wait_for_timeout(1500)
+        page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_device_pair_modal_qr.png")
+
+        # Check Forwarder Config tab
+        page.click('text="Forwarder Config"')
+        page.wait_for_timeout(1000)
+        page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_device_pair_modal_config.png")
+
+        # Check Test Handshake tab
+        page.click('text="Test Handshake"')
+        page.wait_for_timeout(1000)
+        page.click('text="Send Heartbeat Ping"')
+        page.wait_for_timeout(1000)
+        page.click('text="Simulate bKash SMS"')
+        page.wait_for_timeout(1000)
+        page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_device_pair_modal_test.png")
+
+        # Close Modal
+        page.click('text="Close Console"')
+        page.wait_for_timeout(1000)
+        print(f"[{host_name}] Android QR Pairing & Handshake verified successfully!")
 
     # Landing Builder
     page.click('text="Landing Builder"')

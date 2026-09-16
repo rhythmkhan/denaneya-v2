@@ -646,6 +646,25 @@ function handleMockFallback<T>(endpoint: string, options: RequestInit = {}): T {
     } as unknown as T;
   }
 
+  // 13b. Device Heartbeat & Sync-SMS
+  if (cleanEndpoint.startsWith('/device')) {
+    if (cleanEndpoint.includes('/heartbeat')) {
+      const devices = getStoredDevices();
+      const updated = devices.map((d) => ({
+        ...d,
+        status: 'online',
+        last_sync_at: new Date().toISOString(),
+        battery_level: 96
+      }));
+      setStoredDevices(updated);
+      return { success: true, message: 'Heartbeat acknowledged' } as unknown as T;
+    }
+
+    if (cleanEndpoint.includes('/sync-sms')) {
+      return { success: true, message: 'SMS receipt ingested successfully' } as unknown as T;
+    }
+  }
+
   // 14. Gateways
   if (cleanEndpoint.startsWith('/gateways')) {
     if (method === 'PUT') {
@@ -868,6 +887,16 @@ export const apiClient = {
     delete: (deviceId: string) =>
       request<{ success: boolean }>(`/api/devices/${deviceId}`, {
         method: 'DELETE'
+      }),
+    ping: (deviceId: string) =>
+      request<{ success: boolean; message: string }>('/api/device/heartbeat', {
+        method: 'POST',
+        body: JSON.stringify({ device_id: deviceId, battery_level: 96 })
+      }),
+    testSms: (payload: { sender: string; raw_text: string }) =>
+      request<{ success: boolean; message: string }>('/api/device/sync-sms', {
+        method: 'POST',
+        body: JSON.stringify(payload)
       })
   },
 
