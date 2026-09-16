@@ -10,7 +10,6 @@
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "@denaneya/shared": "*",
     "clsx": "^2.1.1",
     "lucide-react": "^0.359.0",
     "qrcode": "^1.5.3",
