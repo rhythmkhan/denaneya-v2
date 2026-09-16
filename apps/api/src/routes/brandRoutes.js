@@ -9,7 +9,8 @@ import {
   createBrand,
   listBrands,
   getBrandById,
-  rotateBrandSecrets
+  rotateBrandSecrets,
+  updateBrand
 } from '../controllers/brandController.js';
 
 const router = Router();
@@ -20,6 +21,7 @@ router.use(authMiddleware);
 router.post('/', createBrand);
 router.get('/', listBrands);
 router.get('/:id', getBrandById);
+router.put('/:id', updateBrand);
 router.post('/:id/rotate-secrets', rotateBrandSecrets);
 
 export default router;

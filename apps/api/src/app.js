@@ -20,9 +20,16 @@ import staffRoutes from './routes/staffRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
 import v1Routes from './routes/v1Routes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 import { maintenanceGuard } from './middlewares/superAdmin.js';
 import { getPublicCustomizer } from './controllers/adminSettingsController.js';
 import dbPkg from '@denaneya/database';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const { getDatabase, setDatabase } = dbPkg;
 
@@ -160,7 +167,29 @@ export function createApp(options = {}) {
   app.use('/api/staff', staffRoutes);
   app.use('/api/billing', billingRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/webhooks', webhookRoutes);
   app.use('/v1', v1Routes);
+
+  // 8b. WooCommerce Plugin Direct Download Fallback
+  const handlePluginDownload = (req, res) => {
+    const candidatePaths = [
+      path.resolve(__dirname, '../../../denaneya-payment-gateway.zip'),
+      path.resolve(__dirname, '../../dashboard/public/denaneya-payment-gateway.zip'),
+      path.resolve(process.cwd(), 'denaneya-payment-gateway.zip'),
+      path.resolve(process.cwd(), '../denaneya-payment-gateway.zip'),
+      path.resolve(process.cwd(), '../../denaneya-payment-gateway.zip')
+    ];
+    const zipPath = candidatePaths.find((p) => fs.existsSync(p));
+    if (zipPath) {
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="denaneya-payment-gateway.zip"');
+      return res.sendFile(zipPath);
+    }
+    return res.status(404).json({ success: false, message: 'Plugin archive not found.' });
+  };
+
+  app.get('/api/download/woocommerce-plugin', handlePluginDownload);
+  app.get('/denaneya-payment-gateway.zip', handlePluginDownload);
 
   // 9. 404 Route Handler
   app.use((req, res) => {

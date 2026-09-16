@@ -467,6 +467,21 @@ function handleMockFallback<T>(endpoint: string, options: RequestInit = {}): T {
         webhook_secret: 'dn_whsec_' + Math.random().toString(36).substring(2, 14)
       } as unknown as T;
     }
+    if (method === 'PUT') {
+      let body: any = {};
+      try {
+        body = JSON.parse(options.body as string);
+      } catch (e) {}
+      const activeBrandRaw = localStorage.getItem('dn_active_brand');
+      let currentBrand = activeBrandRaw ? JSON.parse(activeBrandRaw) : MOCK_BRAND;
+      currentBrand = { ...currentBrand, ...body, updated_at: new Date().toISOString() };
+      localStorage.setItem('dn_active_brand', JSON.stringify(currentBrand));
+      return {
+        success: true,
+        message: 'Brand updated successfully',
+        brand: currentBrand
+      } as unknown as T;
+    }
     if (method === 'POST') {
       let brandName = 'Deshi Course';
       try {
@@ -482,6 +497,47 @@ function handleMockFallback<T>(endpoint: string, options: RequestInit = {}): T {
       success: true,
       brand: MOCK_BRAND,
       brands: [MOCK_BRAND]
+    } as unknown as T;
+  }
+
+  // 10b. Interactive Webhook Tester
+  if (cleanEndpoint.startsWith('/webhooks/test') && method === 'POST') {
+    let body: any = {};
+    try {
+      body = JSON.parse(options.body as string);
+    } catch (e) {}
+    const targetUrl = body.webhook_url || MOCK_BRAND.webhook_url || 'https://myshop.com/api/webhook';
+    const nowTs = Math.floor(Date.now() / 1000);
+    const hexChars = '0123456789abcdef';
+    const fakeSig = Array.from({ length: 64 }, () => hexChars[Math.floor(Math.random() * hexChars.length)]).join('');
+    const nonce = 'test_' + Date.now();
+    const sentPayload = {
+      event: body.event || 'invoice.completed',
+      timestamp: nowTs,
+      delivery_id: 'whlog_mock_' + Math.random().toString(36).substring(2, 9),
+      data: {
+        invoice_id: 'inv_demo_simulated_99',
+        invoice_number: 'INV-2026-0001',
+        amount: 1250.0,
+        currency: 'BDT',
+        status: 'COMPLETED',
+        payment_method: 'bkash',
+        trx_id: 'BLK998877',
+        customer_name: 'Tanvir Ahmed',
+        customer_phone: '01847348685',
+        completed_at: new Date().toISOString()
+      }
+    };
+    return {
+      success: true,
+      http_status: 200,
+      status_text: 'OK',
+      latency_ms: Math.floor(Math.random() * 60) + 85,
+      signature_header: `t=${nowTs},n=${nonce},v1=${fakeSig}`,
+      signature: fakeSig,
+      sent_payload: sentPayload,
+      response_body: '{"received":true,"status":"acknowledged"}',
+      target_url: targetUrl
     } as unknown as T;
   }
 
@@ -811,11 +867,35 @@ export const apiClient = {
         body: JSON.stringify(brandData)
       }),
     getById: (brandId: string) => request<{ success: boolean; brand: any }>(`/api/brands/${brandId}`),
+    update: (brandId: string, data: { webhook_url?: string; brand_name?: string }) =>
+      request<{ success: boolean; message: string; brand: any }>(`/api/brands/${brandId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      }),
     rotateSecrets: (brandId: string, type: 'api_secret' | 'webhook_secret' | 'both') =>
       request<{ success: boolean; api_secret?: string; webhook_secret?: string }>(
         `/api/brands/${brandId}/rotate-secrets`,
         { method: 'POST', body: JSON.stringify({ type }) }
       )
+  },
+
+  // Webhooks
+  webhooks: {
+    sendTest: (payload: { webhook_url?: string; event?: string }) =>
+      request<{
+        success: boolean;
+        http_status: number;
+        status_text: string;
+        latency_ms: number;
+        signature_header: string;
+        signature?: string;
+        sent_payload: any;
+        response_body: string;
+        target_url: string;
+      }>('/api/webhooks/test', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
   },
 
   // Dashboard Telemetry
@@ -857,7 +937,7 @@ export const apiClient = {
 
   // Standalone Hosted Payment Checkout
   payment: {
-    submitTrx: (payload: { invoice_id: string; trx_id: string; amount: number }) =>
+    submitTrx: (payload: { invoice_id: string; trx_id: string; amount?: number }) =>
       request<{ success: boolean; message: string; trx_id: string; status: string }>('/api/payment/submit-trx', {
         method: 'POST',
         body: JSON.stringify(payload)

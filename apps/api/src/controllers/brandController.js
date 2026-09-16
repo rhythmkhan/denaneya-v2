@@ -333,3 +333,94 @@ export async function rotateBrandSecrets(req, res) {
     return res.status(500).json({ success: false, code: 'INTERNAL_SERVER_ERROR', message: 'Failed to rotate credentials.' });
   }
 }
+
+/**
+ * PUT /api/brands/:id
+ * Updates brand attributes (webhook_url, brand_name) for owned brand.
+ */
+export async function updateBrand(req, res) {
+  try {
+    const brandId = req.params.id;
+    const { webhook_url, brand_name } = req.body || {};
+    const db = getDatabase();
+
+    const brand = await db.get(
+      "SELECT id, user_id FROM brands WHERE id = ? AND status != 'deleted'",
+      [brandId]
+    );
+
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        code: 'BRAND_NOT_FOUND',
+        message: 'Brand not found.'
+      });
+    }
+
+    if (brand.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Only the brand owner can update brand settings.'
+      });
+    }
+
+    const updates = [];
+    const params = [];
+
+    if (webhook_url !== undefined) {
+      updates.push('webhook_url = ?');
+      params.push(webhook_url ? webhook_url.trim() : null);
+    }
+
+    if (brand_name !== undefined) {
+      const trimmed = brand_name.trim();
+      if (!trimmed || trimmed.length < 2 || trimmed.length > 120) {
+        return res.status(400).json({
+          success: false,
+          code: 'VALIDATION_ERROR',
+          message: 'Brand name must be between 2 and 120 characters.'
+        });
+      }
+      updates.push('brand_name = ?');
+      params.push(trimmed);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        code: 'BAD_REQUEST',
+        message: 'No updatable fields provided.'
+      });
+    }
+
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    updates.push('updated_at = ?');
+    params.push(now);
+    params.push(brandId);
+
+    await db.query(
+      `UPDATE brands SET ${updates.join(', ')} WHERE id = ?`,
+      params
+    );
+
+    const updatedBrand = await db.get(
+      'SELECT id, user_id, brand_name, brand_slug, api_key, webhook_url, status, created_at, updated_at FROM brands WHERE id = ?',
+      [brandId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Brand updated successfully.',
+      brand: updatedBrand
+    });
+  } catch (err) {
+    console.error('[updateBrand Error]', err);
+    return res.status(500).json({
+      success: false,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Failed to update brand.'
+    });
+  }
+}
+

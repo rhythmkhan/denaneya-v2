@@ -63,13 +63,26 @@ export const Invoices: React.FC = () => {
   const fetchInvoices = async () => {
     setIsLoading(true);
     try {
-      // Fetch via stats or invoices endpoint
-      const res = await apiClient.dashboard.getStats();
-      if (res.success) {
-        setInvoices(res.recent_invoices || []);
+      // Fetch full invoice dataset via invoices endpoint
+      const res = await apiClient.invoices.list({ limit: 100 });
+      if (res.success && res.invoices) {
+        setInvoices(res.invoices);
+      } else {
+        const statsRes = await apiClient.dashboard.getStats();
+        if (statsRes.success) {
+          setInvoices(statsRes.recent_invoices || []);
+        }
       }
     } catch (err) {
       console.error('[Invoices] Error fetching invoice list:', err);
+      try {
+        const statsRes = await apiClient.dashboard.getStats();
+        if (statsRes.success) {
+          setInvoices(statsRes.recent_invoices || []);
+        }
+      } catch (fallbackErr) {
+        console.error('[Invoices] Fallback stats fetch failed:', fallbackErr);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -103,25 +116,57 @@ export const Invoices: React.FC = () => {
     setTimeout(() => setCopiedLink(null), 2500);
   };
 
+  /**
+   * RFC 4180 cell formatter
+   * Escapes double quotes and encloses in quotes if containing delimiter, quote, or newline.
+   */
+  const formatCsvCell = (val: unknown): string => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val);
+    if (/[",\r\n]/.test(str)) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return `"${str}"`;
+  };
+
+  /**
+   * RFC 4180 Compliant CSV Export
+   * Prepend UTF-8 BOM (\uFEFF) for Excel compatibility.
+   * CRLF (\r\n) line endings.
+   * Headers: Invoice ID,Customer Name,Phone,Amount BDT,Gateway,Status,TrxID,Created Date.
+   */
   const handleExportCsv = () => {
     const dataToExport = filteredInvoices.length > 0 ? filteredInvoices : invoices;
     if (dataToExport.length === 0) {
       alert('No invoice records to export.');
       return;
     }
-    const headers = ['Invoice Number', 'Customer Name', 'Customer Phone', 'Amount (BDT)', 'Status', 'TrxID', 'Gateway Method', 'Created At'];
+
+    const headers = [
+      'Invoice ID',
+      'Customer Name',
+      'Phone',
+      'Amount BDT',
+      'Gateway',
+      'Status',
+      'TrxID',
+      'Created Date'
+    ];
+
     const rows = dataToExport.map((inv) => [
-      `"${inv.invoice_number || inv.id}"`,
-      `"${(inv.customer_name || '').replace(/"/g, '""')}"`,
-      `"${(inv.customer_phone || '').replace(/"/g, '""')}"`,
-      inv.amount,
-      `"${inv.status}"`,
-      `"${inv.trx_id || ''}"`,
-      `"${inv.payment_method || 'MFS'}"`,
-      `"${inv.created_at || new Date().toISOString()}"`
+      formatCsvCell(inv.invoice_number || inv.id),
+      formatCsvCell(inv.customer_name || 'N/A'),
+      formatCsvCell(inv.customer_phone || ''),
+      formatCsvCell(Number(inv.amount || 0).toFixed(2)),
+      formatCsvCell(inv.payment_method || (inv as any).gateway_method || 'MFS'),
+      formatCsvCell(inv.status),
+      formatCsvCell(inv.trx_id || ''),
+      formatCsvCell(inv.created_at ? new Date(inv.created_at).toISOString().replace('T', ' ').substring(0, 19) : '')
     ]);
-    const csvString = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    // Prepend UTF-8 Byte Order Mark (\uFEFF) for Microsoft Excel compatibility
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -185,6 +230,15 @@ export const Invoices: React.FC = () => {
     }
   };
 
+  // Accounting Summary Metrics
+  const totalInvoicesCount = invoices.length;
+  const grossVolume = invoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+  const settledInvoices = invoices.filter((inv) => inv.status === 'PAID' || inv.status === 'COMPLETED');
+  const settledVolume = settledInvoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+  const pendingInvoices = invoices.filter((inv) => inv.status === 'PENDING');
+  const pendingVolume = pendingInvoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+  const settlementRate = totalInvoicesCount > 0 ? ((settledInvoices.length / totalInvoicesCount) * 100).toFixed(1) : '0.0';
+
   return (
     <div className="space-y-6">
       {/* Header & New Invoice Trigger */}
@@ -215,6 +269,49 @@ export const Invoices: React.FC = () => {
           >
             Create Custom Invoice
           </Button>
+        </div>
+      </div>
+
+      {/* Accounting Summary Toolbar Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Total Invoices</span>
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="text-xl font-black text-slate-900">{totalInvoicesCount}</span>
+            <span className="text-[10px] text-slate-400 font-mono">invoices</span>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Gross Volume</span>
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="text-xl font-black text-slate-900">৳{grossVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-[10px] text-slate-400 font-mono">BDT</span>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider block">Settled Volume</span>
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="text-xl font-black text-emerald-600">৳{settledVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-[10px] text-emerald-600/80 font-bold">{settledInvoices.length} paid</span>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider block">Pending Volume</span>
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="text-xl font-black text-amber-600">৳{pendingVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-[10px] text-amber-600/80 font-bold">{pendingInvoices.length} pending</span>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs col-span-2 sm:col-span-1">
+          <span className="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider block">Settlement Rate</span>
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="text-xl font-black text-indigo-600">{settlementRate}%</span>
+            <span className="text-[10px] text-indigo-600/80 font-bold">conversion</span>
+          </div>
         </div>
       </div>
 

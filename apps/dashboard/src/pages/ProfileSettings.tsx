@@ -22,6 +22,7 @@ import {
   EyeOff,
   RefreshCw,
   AlertTriangle,
+  AlertCircle,
   QrCode,
   Smartphone,
   Lock,
@@ -57,29 +58,42 @@ export const ProfileSettings: React.FC = () => {
   const [isTestingWebhook, setIsTestingWebhook] = useState<boolean>(false);
   const [testWebhookResult, setTestWebhookResult] = useState<{
     status: number;
+    statusText: string;
     latency: number;
-    signature: string;
-    event: string;
+    signatureHeader: string;
+    sentPayload: any;
+    responseBody: string;
+    targetUrl: string;
     timestamp: string;
   } | null>(null);
+  const [webhookSaveFeedback, setWebhookSaveFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleTestWebhook = async () => {
+    if (!webhookUrl.trim()) {
+      alert('Please enter a valid Merchant Webhook Listener URL before testing.');
+      return;
+    }
     setIsTestingWebhook(true);
     setTestWebhookResult(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      const simulatedTimestamp = Math.floor(Date.now() / 1000);
-      const hexChars = '0123456789abcdef';
-      const fakeSig = Array.from({ length: 64 }, () => hexChars[Math.floor(Math.random() * hexChars.length)]).join('');
-      setTestWebhookResult({
-        status: 200,
-        latency: Math.floor(Math.random() * 80) + 95,
-        signature: `t=${simulatedTimestamp},v1=${fakeSig}`,
-        event: 'invoice.completed',
-        timestamp: new Date().toISOString()
+      const res = await apiClient.webhooks.sendTest({
+        webhook_url: webhookUrl.trim(),
+        event: 'invoice.completed'
       });
-    } catch (e) {
-      alert('Webhook dispatch test failed.');
+      if (res.success) {
+        setTestWebhookResult({
+          status: res.http_status,
+          statusText: res.status_text,
+          latency: res.latency_ms,
+          signatureHeader: res.signature_header,
+          sentPayload: res.sent_payload,
+          responseBody: res.response_body,
+          targetUrl: res.target_url,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (e: any) {
+      alert(e.message || 'Webhook dispatch test failed.');
     } finally {
       setIsTestingWebhook(false);
     }
@@ -119,14 +133,20 @@ export const ProfileSettings: React.FC = () => {
 
   const handleSaveWebhookUrl = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!brand?.id) return;
     setIsSavingWebhook(true);
+    setWebhookSaveFeedback(null);
     try {
-      // API call to update brand webhook URL
-      setTimeout(() => {
-        setIsSavingWebhook(false);
-        alert('Webhook URL updated.');
-      }, 500);
-    } catch (err) {
+      const res = await apiClient.brands.update(brand.id, {
+        webhook_url: webhookUrl.trim()
+      });
+      if (res.success) {
+        setWebhookSaveFeedback({ type: 'success', message: 'Webhook Listener URL saved successfully.' });
+        setTimeout(() => setWebhookSaveFeedback(null), 3500);
+      }
+    } catch (err: any) {
+      setWebhookSaveFeedback({ type: 'error', message: err.message || 'Failed to update webhook URL.' });
+    } finally {
       setIsSavingWebhook(false);
     }
   };
@@ -283,6 +303,20 @@ export const ProfileSettings: React.FC = () => {
                 Save URL
               </Button>
             </div>
+            {webhookSaveFeedback && (
+              <div
+                className={`mt-2 text-xs font-semibold flex items-center gap-1.5 ${
+                  webhookSaveFeedback.type === 'success' ? 'text-emerald-600' : 'text-rose-600'
+                }`}
+              >
+                {webhookSaveFeedback.type === 'success' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                ) : (
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                )}
+                <span>{webhookSaveFeedback.message}</span>
+              </div>
+            )}
           </div>
 
           <div>
@@ -351,21 +385,74 @@ export const ProfileSettings: React.FC = () => {
             </div>
 
             {testWebhookResult && (
-              <div className="p-3.5 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 space-y-2">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 space-y-3 shadow-inner">
+                {/* Status Bar */}
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span className="font-bold text-emerald-400">HTTP {testWebhookResult.status} OK</span>
+                    {testWebhookResult.status >= 200 && testWebhookResult.status < 300 ? (
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>HTTP {testWebhookResult.status} {testWebhookResult.statusText || 'OK'}</span>
+                      </div>
+                    ) : testWebhookResult.status === 0 ? (
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>HTTP 0 Connection Failed</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>HTTP {testWebhookResult.status} {testWebhookResult.statusText || 'Error'}</span>
+                      </div>
+                    )}
+                    <span className="text-slate-400 text-[11px] font-mono font-semibold">
+                      ⚡ {testWebhookResult.latency}ms latency
+                    </span>
                   </div>
-                  <span className="text-slate-400 text-[11px]">{testWebhookResult.latency}ms latency</span>
+
+                  <span className="text-[10px] text-slate-500 font-sans">
+                    {new Date(testWebhookResult.timestamp).toLocaleTimeString()}
+                  </span>
                 </div>
-                <div className="text-[11px] text-slate-400">
-                  <span className="text-slate-500">Header: </span>
-                  <span className="text-amber-300 break-all">X-DenaNeya-Signature: {testWebhookResult.signature}</span>
+
+                {/* Target Destination */}
+                <div className="text-[11px]">
+                  <span className="text-slate-500">Destination: </span>
+                  <span className="text-slate-200 font-mono break-all">{testWebhookResult.targetUrl}</span>
                 </div>
-                <div className="text-[11px] text-slate-400">
-                  <span className="text-slate-500">Payload: </span>
-                  <span className="text-indigo-300">&#123; "event": "{testWebhookResult.event}", "status": "COMPLETED" &#125;</span>
+
+                {/* Cryptographic Signature Header with Copy Button */}
+                <div className="text-[11px] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-semibold">HMAC-SHA256 Header (X-DenaNeya-Signature):</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(testWebhookResult.signatureHeader, 'wh_test_sig')}
+                      className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedKey === 'wh_test_sig' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedKey === 'wh_test_sig' ? 'Copied' : 'Copy Header'}</span>
+                    </button>
+                  </div>
+                  <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 text-amber-300 break-all text-[10px] select-all">
+                    {testWebhookResult.signatureHeader}
+                  </div>
+                </div>
+
+                {/* Dispatched Payload */}
+                <div className="text-[11px] space-y-1">
+                  <span className="text-slate-500 font-semibold">Dispatched Event Payload (invoice.completed):</span>
+                  <pre className="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-indigo-300 text-[10px] overflow-x-auto leading-relaxed max-h-40 font-mono">
+                    {JSON.stringify(testWebhookResult.sentPayload, null, 2)}
+                  </pre>
+                </div>
+
+                {/* Remote Response Body */}
+                <div className="text-[11px] space-y-1">
+                  <span className="text-slate-500 font-semibold">Remote Listener Response:</span>
+                  <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-300 text-[10px] break-all max-h-24 overflow-y-auto">
+                    {testWebhookResult.responseBody || '<Empty response body>'}
+                  </div>
                 </div>
               </div>
             )}
