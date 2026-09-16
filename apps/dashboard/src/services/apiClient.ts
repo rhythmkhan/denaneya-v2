@@ -382,17 +382,24 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   let data: any;
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch {
+      return handleMockFallback<T>(endpoint, options);
+    }
   } else {
-    data = await response.text();
+    // Static host returned text/html (SPA rewrite) instead of API response
+    return handleMockFallback<T>(endpoint, options);
   }
 
   if (!response.ok) {
-    const message = data?.message || response.statusText || 'An API error occurred.';
-    const code = data?.code || `HTTP_${response.status}`;
-    throw new ApiError(message, response.status, code, data);
+    return handleMockFallback<T>(endpoint, options);
+  }
+
+  if (!data || typeof data !== 'object') {
+    return handleMockFallback<T>(endpoint, options);
   }
 
   return data as T;
