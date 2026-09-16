@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dbPkg from '@denaneya/database';
 
-const { getDatabase } = dbPkg;
+const { getDatabase, getSystemSetting } = dbPkg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -125,6 +125,11 @@ export async function getPublicInvoice(req, res) {
       };
     });
 
+    // Filter out globally disabled gateways
+    const masterSetting = await getSystemSetting(db, 'master_gateways', { disabled_channels: [] });
+    const disabledChannels = (masterSetting.disabled_channels || masterSetting.disabledChannels || []).map((c) => String(c).toLowerCase());
+    const filteredGateways = activeGateways.filter((gw) => !disabledChannels.includes(String(gw.channel_name).toLowerCase()));
+
     return res.status(200).json({
       success: true,
       invoice: {
@@ -146,7 +151,7 @@ export async function getPublicInvoice(req, res) {
         time_remaining_seconds: isExpired ? 0 : timeRemainingSeconds,
         is_expired: isExpired
       },
-      gateways: activeGateways
+      gateways: filteredGateways
     });
   } catch (err) {
     console.error('[invoiceController.getPublicInvoice Error]', err.message || err);
@@ -170,7 +175,14 @@ export async function renderHostedCheckout(req, res) {
     }
 
     const db = getDatabase();
-    const invoice = await db.get('SELECT id, status FROM invoices WHERE id = ?', [invoiceId]);
+    const invoice = await db.get(
+      `SELECT i.id, i.status, u.status AS user_status, b.status AS brand_status
+       FROM invoices i
+       LEFT JOIN brands b ON i.brand_id = b.id
+       LEFT JOIN users u ON b.user_id = u.id
+       WHERE i.id = ?`,
+      [invoiceId]
+    );
     if (!invoice) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.status(404).send(`<!DOCTYPE html>
@@ -178,6 +190,14 @@ export async function renderHostedCheckout(req, res) {
 <head><title>Invoice Not Found - DenaNeya</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1rem;box-sizing:border-box}.card{background:#fff;border-radius:1.5rem;padding:2.5rem;max-width:28rem;width:100%;text-align:center;box-shadow:0 10px 25px -5px rgba(0,0,0,0.05);border:1px solid #e2e8f0}.icon{width:3.5rem;height:3.5rem;background:#fef2f2;color:#dc2626;border-radius:1rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:1.75rem;font-weight:bold}h1{font-size:1.35rem;margin:0 0 0.5rem;color:#0f172a}p{font-size:0.875rem;color:#64748b;margin:0 0 1.5rem;line-height:1.5}</style></head>
 <body><div class="card"><div class="icon">!</div><h1>Invoice Not Found</h1><p>The requested invoice does not exist or the payment link is invalid.</p></div><!-- /api/invoices/${invoiceId}/public --></body>
 </html>`);
+    }
+
+    if (invoice.user_status === 'blocked' || invoice.user_status === 'suspended' || invoice.brand_status === 'blocked' || invoice.brand_status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        code: 'MERCHANT_BLOCKED',
+        message: 'This merchant account has been suspended or blocked.'
+      });
     }
 
     // Check if separate frontend hosted checkout URL is configured (e.g. Next.js web app)

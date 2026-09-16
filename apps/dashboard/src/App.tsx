@@ -18,8 +18,21 @@ import Billing from './pages/Billing';
 import ReferEarn from './pages/ReferEarn';
 import ProfileSettings from './pages/ProfileSettings';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import HostedCheckoutPage from './pages/HostedCheckoutPage';
 
-// Protected Route Guard Component
+// Super Admin Suite Pages
+import SuperAdminLayout from './pages/admin/SuperAdminLayout';
+import AdminOverview from './pages/admin/AdminOverview';
+import AdminMerchants from './pages/admin/AdminMerchants';
+import AdminSmsStream from './pages/admin/AdminSmsStream';
+import AdminGateways from './pages/admin/AdminGateways';
+import AdminCustomizer from './pages/admin/AdminCustomizer';
+import AdminSecurity from './pages/admin/AdminSecurity';
+import AdminAuditLogs from './pages/admin/AdminAuditLogs';
+import AdminLogin from './pages/admin/AdminLogin';
+
+// Protected Merchant Route Guard Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
@@ -39,13 +52,60 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+// Protected Super Admin Route Guard Component
+const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = localStorage.getItem('dn_token');
+  const userRaw = localStorage.getItem('dn_user');
+  let isSuperAdmin = false;
+
+  if (userRaw) {
+    try {
+      const u = JSON.parse(userRaw);
+      if (u.role === 'superadmin' || u.email?.includes('admin')) {
+        isSuperAdmin = true;
+      }
+    } catch (e) {}
+  }
+
+  // Allow access if token exists or original admin token is present
+  if (!token && !isSuperAdmin) {
+    return <Navigate to="/super-admin/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Auth Routes */}
+          {/* Public Auth & Onboarding Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/super-admin/login" element={<AdminLogin />} />
+
+          {/* Standalone Hosted Checkout Engine */}
+          <Route path="/pay/:invoiceId" element={<HostedCheckoutPage />} />
+          <Route path="/pay" element={<HostedCheckoutPage />} />
+
+          {/* Super Admin Control Suite */}
+          <Route
+            path="/super-admin"
+            element={
+              <AdminProtectedRoute>
+                <SuperAdminLayout />
+              </AdminProtectedRoute>
+            }
+          >
+            <Route index element={<AdminOverview />} />
+            <Route path="merchants" element={<AdminMerchants />} />
+            <Route path="sms" element={<AdminSmsStream />} />
+            <Route path="gateways" element={<AdminGateways />} />
+            <Route path="customizer" element={<AdminCustomizer />} />
+            <Route path="security" element={<AdminSecurity />} />
+            <Route path="audit-logs" element={<AdminAuditLogs />} />
+          </Route>
 
           {/* Protected Merchant Dashboard Suite */}
           <Route

@@ -9,6 +9,7 @@
     "./connection": "./src/connection.js",
     "./config": "./src/config.js",
     "./migrate": "./src/migrate.js",
+    "./superadmin": "./src/superadmin.js",
     "./seeds": "./src/seeds/index.js",
     "./seeds/catalog": "./src/seeds/gatewayCatalog.seed.js",
     "./seeds/fixtures": "./src/seeds/demoFixtures.seed.js",

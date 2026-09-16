@@ -14,7 +14,7 @@
 
 import dbPkg from '@denaneya/database';
 
-const { getDatabase } = dbPkg;
+const { getDatabase, getSystemSetting } = dbPkg;
 
 function maskPhone(phone) {
   if (!phone || typeof phone !== 'string') return '';
@@ -55,8 +55,19 @@ export async function verifyTrx(req, res) {
       });
     }
 
+    const db = getDatabase();
+    const pricingSetting = await getSystemSetting(db, 'pricing', {});
+    let feePerVerification = 1;
+    if (pricingSetting) {
+      if (typeof pricingSetting.feePerVerification === 'number') {
+        feePerVerification = pricingSetting.feePerVerification;
+      } else if (typeof pricingSetting.rate_per_verification_bdt === 'number') {
+        feePerVerification = pricingSetting.rate_per_verification_bdt;
+      }
+    }
+
     // 1. Merchant Credit Pre-Check
-    if (merchant.credits < 1) {
+    if (merchant.credits < feePerVerification) {
       return res.status(402).json({
         statusCode: 402,
         success: false,
@@ -66,7 +77,6 @@ export async function verifyTrx(req, res) {
     }
 
     const cleanTrx = targetTrxId.trim().toUpperCase();
-    const db = getDatabase();
 
     // 2. Query matching UNUSED transaction scoped strictly to this brand
     const stored = await db.get(
@@ -85,13 +95,14 @@ export async function verifyTrx(req, res) {
       });
     }
 
-    // 3. Atomically Deduct 1 Credit (VULN-11 Defense)
+    // 3. Atomically Deduct Verification Credits (VULN-11 Defense)
     const creditResult = await db.query(
-      'UPDATE users SET credits = credits - 1 WHERE id = ? AND credits >= 1',
-      [brand.user_id]
+      'UPDATE users SET credits = credits - ? WHERE id = ? AND credits >= ?',
+      [feePerVerification, brand.user_id, feePerVerification]
     );
 
-    if (creditResult.affectedRows === 0) {
+    const affected = Number(creditResult?.affectedRows ?? creditResult?.changes ?? 0);
+    if (affected === 0) {
       return res.status(402).json({
         statusCode: 402,
         success: false,
@@ -101,7 +112,7 @@ export async function verifyTrx(req, res) {
     }
 
     // Update in-memory credit tracker
-    req.merchant.credits -= 1;
+    req.merchant.credits -= feePerVerification;
 
     // 4. Return Verification Data (Transaction remains UNUSED until confirmed)
     return res.status(200).json({

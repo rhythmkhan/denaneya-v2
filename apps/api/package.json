@@ -8,7 +8,8 @@
     "dev": "tsx watch src/server.js",
     "build": "node -e \"console.log('[api] Build complete.')\"",
     "start": "node src/server.js",
-    "test": "node test/api.test.js && node test/m3.test.js",
+    "test": "node test/api.test.js && node test/m3.test.js && node test/m1.test.js",
+    "test:m1": "node test/m1.test.js",
     "test:m3": "node test/m3.test.js"
   },
   "dependencies": {

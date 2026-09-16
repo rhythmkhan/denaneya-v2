@@ -104,6 +104,15 @@ const SUITE_REGISTRY = [
     ],
     timeoutMs: 30000
   },
+  {
+    tier: 1,
+    id: 'TIER-1-SUPERADMIN',
+    name: 'Super Admin Core Capabilities & Governance',
+    candidates: [
+      path.join(repoRoot, 'tests/e2e/tier1_superadmin_core.test.js')
+    ],
+    timeoutMs: 35000
+  },
 
   // --------------------------------------------------------------------------
   // TIER 2: Boundary & Corner Cases
@@ -126,6 +135,15 @@ const SUITE_REGISTRY = [
       path.join(repoRoot, 'tests/e2e/tier2_rbac_billing.test.js')
     ],
     timeoutMs: 30000
+  },
+  {
+    tier: 2,
+    id: 'TIER-2-SUPERADMIN-BOUNDARIES',
+    name: 'Super Admin RBAC Boundaries & Defensive Hardening',
+    candidates: [
+      path.join(repoRoot, 'tests/e2e/tier2_superadmin_boundaries.test.js')
+    ],
+    timeoutMs: 35000
   },
 
   // --------------------------------------------------------------------------
@@ -152,6 +170,15 @@ const SUITE_REGISTRY = [
     ],
     timeoutMs: 30000
   },
+  {
+    tier: 3,
+    id: 'TIER-3-SUPERADMIN-CONCURRENCY',
+    name: 'Super Admin Concurrency & Real-Time Propagation Races',
+    candidates: [
+      path.join(repoRoot, 'tests/e2e/tier3_superadmin_concurrency.test.js')
+    ],
+    timeoutMs: 45000
+  },
 
   // --------------------------------------------------------------------------
   // TIER 4: Real-World Workloads (5 Complete Merchant-Customer Journeys)
@@ -163,6 +190,15 @@ const SUITE_REGISTRY = [
     candidates: [
       path.join(repoRoot, 'tests/e2e/tier4_realworld_workloads.test.js'),
       path.join(__dirname, 'tier4_realworld_workloads.test.js')
+    ],
+    timeoutMs: 45000
+  },
+  {
+    tier: 4,
+    id: 'TIER-4-SUPERADMIN-REALWORLD',
+    name: 'Super Admin Real-World Operational Journeys',
+    candidates: [
+      path.join(repoRoot, 'tests/e2e/tier4_superadmin_realworld.test.js')
     ],
     timeoutMs: 45000
   },
@@ -291,7 +327,12 @@ const SECURITY_CHECKLIST = [
   { id: 'SEC-TEST-14', vuln: 'VULN-10: Stale Invoice Lifecycle', defense: 'Strict 15-Minute TTL auto-expiration with HTTP 410 rejection', suiteId: 'TIER-2-BOUNDARIES' },
   { id: 'SEC-TEST-15', vuln: 'VULN-09: Cross-Tenant Collision DoS', defense: 'Composite unique index `UNIQUE(brand_id, trx_id)` isolating brands', suiteId: 'TIER-3-MULTITENANT' },
   { id: 'SEC-TEST-16', vuln: 'VULN-11: Credit Balance Concurrency', defense: 'Atomic credit deduction (`UPDATE users SET credits = credits - 1 WHERE credits >= 1`)', suiteId: 'TIER-3-CONCURRENCY' },
-  { id: 'SEC-TEST-17', vuln: 'VULN-12: Numerical Injection / DoS', defense: 'Rejection of `NaN`, `Infinity`, negative amounts, and floating-point injection', suiteId: 'TIER-2-BOUNDARIES' }
+  { id: 'SEC-TEST-17', vuln: 'VULN-12: Numerical Injection / DoS', defense: 'Rejection of `NaN`, `Infinity`, negative amounts, and floating-point injection', suiteId: 'TIER-2-BOUNDARIES' },
+  { id: 'SEC-TEST-18', vuln: 'THREAT-01: Super Admin Privilege Escalation', defense: 'Strict live DB role=superadmin session guard on all /api/admin/* endpoints', suiteId: 'TIER-2-SUPERADMIN-BOUNDARIES' },
+  { id: 'SEC-TEST-19', vuln: 'THREAT-02: Impersonation Hijack & Credential Leak', defense: 'Scoped merchant JWT + HMAC-signed single-use return ticket cache', suiteId: 'TIER-2-SUPERADMIN-BOUNDARIES' },
+  { id: 'SEC-TEST-20', vuln: 'THREAT-03: TOTP Clock Skew & Code Replay Attack', defense: 'RFC 6238 1-step window tolerance + 90s replay prevention deduplication cache', suiteId: 'TIER-2-SUPERADMIN-BOUNDARIES' },
+  { id: 'SEC-TEST-21', vuln: 'THREAT-04: Cross-Tenant SMS Manual Reconcile Race', defense: 'Atomic CAS compare-and-swap state transition across stored_data and invoices', suiteId: 'TIER-3-SUPERADMIN-CONCURRENCY' },
+  { id: 'SEC-TEST-22', vuln: 'THREAT-05: Maintenance Bypass & Customizer XSS', defense: 'Reverse-proxy IP pinning whitelist + Zod URL regex and HTML entity escaping', suiteId: 'TIER-2-SUPERADMIN-BOUNDARIES' }
 ];
 
 /**
@@ -416,6 +457,7 @@ export async function runMasterE2ERunner() {
   const targetSuites = SUITE_REGISTRY.filter((s) => {
     if (options.tier === 'all') return true;
     if (options.tier === 'security') return s.tier === 'security';
+    if (options.tier === 'superadmin') return String(s.id).includes('SUPERADMIN');
     return String(s.tier) === String(options.tier);
   });
 

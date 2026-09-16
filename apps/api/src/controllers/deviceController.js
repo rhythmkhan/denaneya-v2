@@ -83,13 +83,13 @@ export async function syncSMS(req, res) {
     const device = req.device;
 
     // Support both single SMS payload and batch multi-SMS array
-    const { message, text, body, sender, address, from, sim_slot, timestamp, messages } = req.body || {};
+    const { message, text, body, raw_sms, sender, address, from, sim_slot, timestamp, messages } = req.body || {};
 
     const rawList = Array.isArray(messages)
       ? messages
-      : message || text || body
+      : (message || text || body || raw_sms)
       ? [{
-          message: message || text || body,
+          message: message || text || body || raw_sms,
           sender: sender || address || from,
           sim_slot: sim_slot ?? 1,
           timestamp: timestamp || new Date().toISOString()

@@ -19,7 +19,7 @@ import dbPkg from '@denaneya/database';
 import { toPaisa } from '@denaneya/shared';
 import { dispatchSingleWebhook } from '../services/webhookService.js';
 
-const { getDatabase } = dbPkg;
+const { getDatabase, getSystemSetting } = dbPkg;
 
 // Universal helper: mask mobile numbers for privacy
 function maskPhone(phone) {
@@ -263,9 +263,23 @@ async function reconcileInvoicePayment({ invoiceId, trxId }) {
  */
 export async function submitTrx(req, res) {
   try {
-    const { invoice_id, invoiceId, trx_id, trxId, transactionId } = req.body || {};
+    const { invoice_id, invoiceId, trx_id, trxId, transactionId, paymentMethod, payment_method } = req.body || {};
     const targetInvoiceId = invoice_id || invoiceId;
     const targetTrxId = trx_id || trxId || transactionId;
+
+    const targetMethod = (paymentMethod || payment_method || '').toLowerCase().trim();
+    if (targetMethod) {
+      const db = getDatabase();
+      const masterSetting = await getSystemSetting(db, 'master_gateways', { disabled_channels: [] });
+      const disabledChannels = (masterSetting.disabled_channels || masterSetting.disabledChannels || []).map((c) => String(c).toLowerCase());
+      if (disabledChannels.includes(targetMethod)) {
+        return res.status(400).json({
+          success: false,
+          code: 'GATEWAY_GLOBALLY_DISABLED',
+          message: `Payment gateway channel '${targetMethod}' is temporarily disabled network-wide.`
+        });
+      }
+    }
 
     const result = await reconcileInvoicePayment({
       invoiceId: targetInvoiceId,

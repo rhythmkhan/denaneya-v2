@@ -19,6 +19,9 @@ import gatewayRoutes from './routes/gatewayRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
 import v1Routes from './routes/v1Routes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import { maintenanceGuard } from './middlewares/superAdmin.js';
+import { getPublicCustomizer } from './controllers/adminSettingsController.js';
 import dbPkg from '@denaneya/database';
 
 const { getDatabase, setDatabase } = dbPkg;
@@ -135,7 +138,14 @@ export function createApp(options = {}) {
   app.get('/health', healthHandler);
   app.get('/api/health', healthHandler);
 
-  // 7b. Hosted Checkout Direct Page
+  // 7b. Public Customizer & Dynamic Site Settings (Unauthenticated)
+  app.get('/api/customizer/public', getPublicCustomizer);
+  app.get('/api/public/settings', getPublicCustomizer);
+
+  // 7c. Network-wide Maintenance Mode Guard
+  app.use(maintenanceGuard);
+
+  // 7d. Hosted Checkout Direct Page
   app.get('/pay/:invoiceId', checkoutPageHandler);
 
   // 8. Core API Routes
@@ -149,6 +159,7 @@ export function createApp(options = {}) {
   app.use('/api/gateways', gatewayRoutes);
   app.use('/api/staff', staffRoutes);
   app.use('/api/billing', billingRoutes);
+  app.use('/api/admin', adminRoutes);
   app.use('/v1', v1Routes);
 
   // 9. 404 Route Handler

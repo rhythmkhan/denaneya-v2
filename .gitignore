@@ -20,10 +20,13 @@ out/
 # Database files
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
+dist_archives/
 
 # Logs
 logs/

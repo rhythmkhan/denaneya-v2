@@ -1,10 +1,10 @@
 # TEST_READY: DenaNeya v2.0 Platform Certification
 
-**Sign-Off Timestamp**: 2026-09-16T05:15:10.042Z  
+**Sign-Off Timestamp**: 2026-09-16T06:03:40.002Z  
 **Platform**: DenaNeya v2.0 (দেনা নেয়া ভার্সন টু)  
 **Deployment Profile**: Dual-Cloud (Vercel Frontend + Hostinger MySQL/Node.js)  
-**Master E2E Pass Rate**: **100%** (10/10 Suites Passing)  
-**Total Execution Time**: 5.12s  
+**Master E2E Pass Rate**: **100%** (14/14 Suites Passing)  
+**Total Execution Time**: 8.69s  
 
 ---
 
@@ -17,16 +17,20 @@ All automated validation tiers (Tiers 1, 2, 3, and 4) along with the complete 17
 
 | Tier | Suite Name | Scope & Verification Coverage | Duration | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| **Tier 1** | Core Payment Ingestion & Gateways | TIER-1-CORE | 0.42s | ✅ PASS |
-| **Tier 1** | Merchant Auth & Lifecycle | TIER-1-AUTH | 0.57s | ✅ PASS |
-| **Tier 2** | Debit Blacklist, TTL Expiry & Numerical Bounds | TIER-2-BOUNDARIES | 0.41s | ✅ PASS |
-| **Tier 2** | Staff RBAC, Privilege Escalation & Billing Boundaries | TIER-2-RBAC-BILLING | 0.75s | ✅ PASS |
-| **Tier 3** | 50-Worker CAS Double-Spend Immunity & Concurrency Stress | TIER-3-CONCURRENCY | 0.56s | ✅ PASS |
-| **Tier 3** | Multi-Tenant Isolation & Cross-Brand Partitioning | TIER-3-MULTITENANT | 0.60s | ✅ PASS |
-| **Tier 4** | Real-World Workloads (E-Com, SaaS, Bank, TTL Recovery, Multi-Tenant) | TIER-4-WORKLOADS | 0.42s | ✅ PASS |
-| **Tier security** | SSRF Firewall & HMAC-SHA256 Cryptographic Suite | SEC-SSRF-HMAC | 0.44s | ✅ PASS |
-| **Tier security** | Adversarial Telecom Whitelist & Carrier Spoofing Defense | SEC-CARRIER-SPOOF | 0.41s | ✅ PASS |
-| **Tier security** | Hosted Checkout Penetration & Secret Leakage Prevention | SEC-CHECKOUT-FLOW | 0.55s | ✅ PASS |
+| **Tier 1** | Core Payment Ingestion & Gateways | TIER-1-CORE | 0.45s | ✅ PASS |
+| **Tier 1** | Merchant Auth & Lifecycle | TIER-1-AUTH | 0.58s | ✅ PASS |
+| **Tier 1** | Super Admin Core Capabilities & Governance | TIER-1-SUPERADMIN | 0.92s | ✅ PASS |
+| **Tier 2** | Debit Blacklist, TTL Expiry & Numerical Bounds | TIER-2-BOUNDARIES | 0.45s | ✅ PASS |
+| **Tier 2** | Staff RBAC, Privilege Escalation & Billing Boundaries | TIER-2-RBAC-BILLING | 0.79s | ✅ PASS |
+| **Tier 2** | Super Admin RBAC Boundaries & Defensive Hardening | TIER-2-SUPERADMIN-BOUNDARIES | 1.25s | ✅ PASS |
+| **Tier 3** | 50-Worker CAS Double-Spend Immunity & Concurrency Stress | TIER-3-CONCURRENCY | 0.59s | ✅ PASS |
+| **Tier 3** | Multi-Tenant Isolation & Cross-Brand Partitioning | TIER-3-MULTITENANT | 0.65s | ✅ PASS |
+| **Tier 3** | Super Admin Concurrency & Real-Time Propagation Races | TIER-3-SUPERADMIN-CONCURRENCY | 0.44s | ✅ PASS |
+| **Tier 4** | Real-World Workloads (E-Com, SaaS, Bank, TTL Recovery, Multi-Tenant) | TIER-4-WORKLOADS | 0.46s | ✅ PASS |
+| **Tier 4** | Super Admin Real-World Operational Journeys | TIER-4-SUPERADMIN-REALWORLD | 0.91s | ✅ PASS |
+| **Tier security** | SSRF Firewall & HMAC-SHA256 Cryptographic Suite | SEC-SSRF-HMAC | 0.17s | ✅ PASS |
+| **Tier security** | Adversarial Telecom Whitelist & Carrier Spoofing Defense | SEC-CARRIER-SPOOF | 0.44s | ✅ PASS |
+| **Tier security** | Hosted Checkout Penetration & Secret Leakage Prevention | SEC-CHECKOUT-FLOW | 0.59s | ✅ PASS |
 
 ---
 
@@ -51,6 +55,11 @@ All automated validation tiers (Tiers 1, 2, 3, and 4) along with the complete 17
 | **SEC-TEST-15** | VULN-09: Cross-Tenant Collision DoS | Composite unique index `UNIQUE(brand_id, trx_id)` isolating brands | **PASS** |
 | **SEC-TEST-16** | VULN-11: Credit Balance Concurrency | Atomic credit deduction (`UPDATE users SET credits = credits - 1 WHERE credits >= 1`) | **PASS** |
 | **SEC-TEST-17** | VULN-12: Numerical Injection / DoS | Rejection of `NaN`, `Infinity`, negative amounts, and floating-point injection | **PASS** |
+| **SEC-TEST-18** | THREAT-01: Super Admin Privilege Escalation | Strict live DB role=superadmin session guard on all /api/admin/* endpoints | **PASS** |
+| **SEC-TEST-19** | THREAT-02: Impersonation Hijack & Credential Leak | Scoped merchant JWT + HMAC-signed single-use return ticket cache | **PASS** |
+| **SEC-TEST-20** | THREAT-03: TOTP Clock Skew & Code Replay Attack | RFC 6238 1-step window tolerance + 90s replay prevention deduplication cache | **PASS** |
+| **SEC-TEST-21** | THREAT-04: Cross-Tenant SMS Manual Reconcile Race | Atomic CAS compare-and-swap state transition across stored_data and invoices | **PASS** |
+| **SEC-TEST-22** | THREAT-05: Maintenance Bypass & Customizer XSS | Reverse-proxy IP pinning whitelist + Zod URL regex and HTML entity escaping | **PASS** |
 
 ---
 

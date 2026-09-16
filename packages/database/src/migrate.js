@@ -1,6 +1,6 @@
 /**
  * DenaNeya v2.0 - Universal Migration Runner
- * Supports both SQLite 3 and MySQL 8
+ * Supports dynamic sequential discovery and execution for SQLite 3 and MySQL 8
  */
 
 'use strict';
@@ -11,6 +11,10 @@ const { getDatabase } = require('./connection.js');
 const { dbConfig } = require('./config.js');
 
 const TABLES_DROP_ORDER = [
+  'admin_audit_logs',
+  'credit_audit_logs',
+  'impersonation_logs',
+  'system_settings',
   'affiliate_referrals',
   'staff_permissions',
   'webhook_logs',
@@ -24,11 +28,90 @@ const TABLES_DROP_ORDER = [
 ];
 
 /**
+ * Robustly split SQL script by semicolons, preserving semicolons inside quotes.
+ * @param {string} sql
+ * @returns {string[]}
+ */
+function splitSqlStatements(sql) {
+  const cleaned = sql.replace(/\/\*[\s\S]*?\*\/|--[^\r\n]*/g, '');
+  const statements = [];
+  let current = '';
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inBacktick = false;
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const char = cleaned[i];
+    const prev = i > 0 ? cleaned[i - 1] : '';
+
+    if (char === "'" && !inDoubleQuote && !inBacktick && prev !== '\\') {
+      inSingleQuote = !inSingleQuote;
+    } else if (char === '"' && !inSingleQuote && !inBacktick && prev !== '\\') {
+      inDoubleQuote = !inDoubleQuote;
+    } else if (char === '`' && !inSingleQuote && !inDoubleQuote && prev !== '\\') {
+      inBacktick = !inBacktick;
+    }
+
+    if (char === ';' && !inSingleQuote && !inDoubleQuote && !inBacktick) {
+      const trimmed = current.trim();
+      if (trimmed) statements.push(trimmed);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  const trimmed = current.trim();
+  if (trimmed) statements.push(trimmed);
+
+  return statements;
+}
+
+/**
+ * Scan migrations directory for dialect-specific files in sorted order.
+ * @param {string} migrationsDir
+ * @param {string} dialect - 'sqlite' | 'mysql'
+ * @returns {Array<{ name: string, filename: string, filepath: string }>}
+ */
+function getMigrationFiles(migrationsDir, dialect) {
+  if (!fs.existsSync(migrationsDir)) return [];
+  const allFiles = fs.readdirSync(migrationsDir);
+  const migrationMap = new Map();
+
+  for (const file of allFiles) {
+    if (dialect === 'mysql') {
+      const match = file.match(/^(\d+_[a-zA-Z0-9_]+)\.mysql\.sql$/);
+      if (match) {
+        migrationMap.set(match[1], {
+          name: match[1],
+          filename: file,
+          filepath: path.join(migrationsDir, file)
+        });
+      }
+    } else {
+      // sqlite
+      const match = file.match(/^(\d+_[a-zA-Z0-9_]+)\.sql$/);
+      if (match && !file.endsWith('.mysql.sql')) {
+        migrationMap.set(match[1], {
+          name: match[1],
+          filename: file,
+          filepath: path.join(migrationsDir, file)
+        });
+      }
+    }
+  }
+
+  return Array.from(migrationMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+  );
+}
+
+/**
  * Execute schema migrations against the configured database.
  * @param {Object} [dbInstance] - Optional existing database driver
  * @param {Object} [options]
  * @param {boolean} [options.reset=false] - Drop all tables before migration
- * @returns {Promise<{ success: boolean, tablesCreated: string[], dialect: string }>}
+ * @returns {Promise<{ success: boolean, tablesCreated: string[], dialect: string, migrationsApplied: string[] }>}
  */
 async function runMigrations(dbInstance = null, options = {}) {
   const db = dbInstance || getDatabase();
@@ -97,39 +180,46 @@ async function runMigrations(dbInstance = null, options = {}) {
     `);
   }
 
-  const migrationFile = db.type === 'mysql'
-    ? path.resolve(__dirname, 'migrations/001_initial_schema.mysql.sql')
-    : path.resolve(__dirname, 'migrations/001_initial_schema.sql');
+  const migrationsDir = path.resolve(__dirname, 'migrations');
+  const migrationFiles = getMigrationFiles(migrationsDir, db.type);
 
-  const migrationName = '001_initial_schema';
-  const alreadyApplied = await db.get(
-    'SELECT * FROM _migrations WHERE name = ?',
-    [migrationName]
-  );
+  if (migrationFiles.length === 0) {
+    console.warn(`[Migrator] No migration files found in ${migrationsDir} for dialect ${db.type}`);
+  }
 
-  if (alreadyApplied && !reset) {
-    console.log(`[Migrator] Migration '${migrationName}' is already applied.`);
-  } else {
-    console.log(`[Migrator] Applying '${migrationName}' from ${path.basename(migrationFile)}...`);
-    const sqlContent = fs.readFileSync(migrationFile, 'utf8');
+  const appliedMigrations = [];
+
+  for (const m of migrationFiles) {
+    const alreadyApplied = await db.get(
+      'SELECT * FROM _migrations WHERE name = ?',
+      [m.name]
+    );
+
+    if (alreadyApplied && !reset) {
+      console.log(`[Migrator] Migration '${m.name}' is already applied.`);
+      continue;
+    }
+
+    console.log(`[Migrator] Applying '${m.name}' from ${m.filename}...`);
+    const sqlContent = fs.readFileSync(m.filepath, 'utf8');
 
     if (db.type === 'sqlite') {
       db.raw.exec(sqlContent);
-      db.raw.prepare('INSERT OR REPLACE INTO _migrations (name) VALUES (?)').run(migrationName);
+      db.raw.prepare('INSERT OR REPLACE INTO _migrations (name) VALUES (?)').run(m.name);
     } else {
-      // MySQL: Strip comments and execute individual statements
-      const cleanedSql = sqlContent.replace(/--[^\r\n]*/g, '');
-      const statements = cleanedSql
-        .split(';')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-
+      // MySQL: Execute individual statements
+      const statements = splitSqlStatements(sqlContent);
       for (const stmt of statements) {
         await db.query(stmt);
       }
-      await db.query('INSERT INTO `_migrations` (`name`) VALUES (?) ON DUPLICATE KEY UPDATE `name` = `name`', [migrationName]);
+      await db.query(
+        'INSERT INTO `_migrations` (`name`) VALUES (?) ON DUPLICATE KEY UPDATE `name` = `name`',
+        [m.name]
+      );
     }
-    console.log(`[Migrator] Migration '${migrationName}' successfully applied!`);
+
+    console.log(`[Migrator] Migration '${m.name}' successfully applied!`);
+    appliedMigrations.push(m.name);
   }
 
   // Verify created tables
@@ -146,7 +236,8 @@ async function runMigrations(dbInstance = null, options = {}) {
   return {
     success: true,
     dialect: db.type,
-    tablesCreated: tables
+    tablesCreated: tables,
+    migrationsApplied: appliedMigrations
   };
 }
 
@@ -164,5 +255,7 @@ if (require.main === module) {
 
 module.exports = {
   runMigrations,
-  TABLES_DROP_ORDER
+  TABLES_DROP_ORDER,
+  splitSqlStatements,
+  getMigrationFiles
 };

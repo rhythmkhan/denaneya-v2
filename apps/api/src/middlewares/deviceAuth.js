@@ -40,15 +40,17 @@ export async function deviceAuthMiddleware(req, res, next) {
 
     const token = rawToken.trim();
 
-    // 2. Query devices joined with brands for complete tenant verification
+    // 2. Query devices joined with brands and users for complete tenant verification
     const db = getDatabase();
     const device = await db.get(
       `SELECT 
          d.id, d.brand_id, d.device_name, d.device_model, d.device_token,
          d.sim1_operator, d.sim2_operator, d.battery_level, d.last_sync_at, d.status,
-         b.id AS brand_pk, b.user_id AS brand_user_id, b.brand_name, b.brand_slug, b.status AS brand_status
+         b.id AS brand_pk, b.user_id AS brand_user_id, b.brand_name, b.brand_slug, b.status AS brand_status,
+         u.status AS user_status
        FROM devices d
        JOIN brands b ON d.brand_id = b.id
+       JOIN users u ON b.user_id = u.id
        WHERE d.device_token = ?`,
       [token]
     );
@@ -71,7 +73,16 @@ export async function deviceAuthMiddleware(req, res, next) {
       });
     }
 
-    // 5. Verify merchant brand status
+    // 5. Verify merchant account status (Blocked/Suspended)
+    if (device.user_status === 'blocked' || device.user_status === 'suspended' || device.user_status === 'deactivated') {
+      return res.status(403).json({
+        success: false,
+        code: 'ACCOUNT_DEACTIVATED',
+        message: 'The merchant account associated with this device has been suspended or blocked.'
+      });
+    }
+
+    // 6. Verify merchant brand status
     if (device.brand_status !== 'active') {
       return res.status(403).json({
         success: false,

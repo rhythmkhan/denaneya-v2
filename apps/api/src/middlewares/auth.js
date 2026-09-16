@@ -52,6 +52,15 @@ export async function authMiddleware(req, res, next) {
     });
   }
 
+  // 2.5 Pre-auth 2FA challenge tokens cannot be used as general authorization tokens
+  if (decoded.isPreAuth) {
+    return res.status(401).json({
+      success: false,
+      code: 'UNAUTHORIZED',
+      message: '2FA challenge token cannot be used for general authorization.'
+    });
+  }
+
   // 3. Database Verification (Guarantees user exists and status is active)
   try {
     const db = getDatabase();
@@ -81,7 +90,8 @@ export async function authMiddleware(req, res, next) {
       id: user.id,
       email: user.email,
       role: user.role,
-      credits: Number(user.credits)
+      credits: Number(user.credits),
+      twoFactorVerified: Boolean(decoded.twoFactorVerified)
     };
 
     return next();
