@@ -1,0 +1,56 @@
+{
+  "name": "@denaneya/shared",
+  "version": "2.0.0",
+  "description": "Shared security, validation, regex parsing, and cryptographic utilities for DenaNeya v2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./telecom": {
+      "import": "./dist/constants/telecom.js",
+      "types": "./dist/constants/telecom.d.ts",
+      "default": "./dist/constants/telecom.js"
+    },
+    "./blacklist": {
+      "import": "./dist/constants/blacklist.js",
+      "types": "./dist/constants/blacklist.d.ts",
+      "default": "./dist/constants/blacklist.js"
+    },
+    "./regex": {
+      "import": "./dist/regex/index.js",
+      "types": "./dist/regex/index.d.ts",
+      "default": "./dist/regex/index.js"
+    },
+    "./security": {
+      "import": "./dist/security/index.js",
+      "types": "./dist/security/index.d.ts",
+      "default": "./dist/security/index.js"
+    },
+    "./schemas": {
+      "import": "./dist/schemas/index.js",
+      "types": "./dist/schemas/index.d.ts",
+      "default": "./dist/schemas/index.js"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node test/shared.test.js"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,43 @@
+# ==============================================================================
+# DenaNeya v2.0 - Hostinger Apache / LiteSpeed Reverse Proxy Configuration
+# Directs public traffic to the internal Node.js PM2 cluster on port 3001.
+# File: apps/api/.htaccess
+# ==============================================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 1. SSL & Security Headers Forwarding
+  <IfModule mod_headers.c>
+    RequestHeader set X-Forwarded-Proto "https" env=HTTPS
+    RequestHeader set X-Forwarded-Port "443" env=HTTPS
+    RequestHeader set X-Forwarded-For "%{REMOTE_ADDR}s"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+  </IfModule>
+
+  # 2. WebSocket Upgrade Pass-Through (Real-time Payment Status & Event Sockets)
+  RewriteCond %{HTTP:Upgrade} =websocket [NC]
+  RewriteCond %{HTTP:Connection} =upgrade [NC]
+  RewriteRule ^(.*)$ ws://127.0.0.1:3001/$1 [P,L]
+
+  # 3. HTTP Reverse Proxy Rules
+  # Proxies API endpoints (/api/), S2S routes (/v1/), health checks (/health),
+  # and hosted checkout routes (/pay/) directly to the PM2 cluster on port 3001.
+  RewriteCond %{REQUEST_URI} ^/api/ [OR]
+  RewriteCond %{REQUEST_URI} ^/v1/ [OR]
+  RewriteCond %{REQUEST_URI} ^/pay/ [OR]
+  RewriteCond %{REQUEST_URI} ^/health
+  RewriteRule ^(.*)$ http://127.0.0.1:3001/$1 [P,L]
+
+</IfModule>
+
+# 4. Prevent Directory Browsing & Server Signature Leakage
+Options -Indexes
+ServerSignature Off
+
+# 5. Protect Sensitive Configuration & Log Files
+<FilesMatch "^(\.env|\.git|ecosystem\.config\.js|logs/.*)">
+  Order allow,deny
+  Deny from all
+</FilesMatch>

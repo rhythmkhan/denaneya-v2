@@ -1,0 +1,29 @@
+{
+  "name": "@denaneya/database",
+  "version": "2.0.0",
+  "description": "Dual-driver (MySQL 8 & SQLite 3) database engine, migrations, and seeders for DenaNeya v2.0",
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./connection": "./src/connection.js",
+    "./config": "./src/config.js",
+    "./migrate": "./src/migrate.js",
+    "./seeds": "./src/seeds/index.js",
+    "./seeds/catalog": "./src/seeds/gatewayCatalog.seed.js",
+    "./seeds/fixtures": "./src/seeds/demoFixtures.seed.js",
+    "./seeds/runner": "./src/seeds/seedRunner.js"
+  },
+  "scripts": {
+    "build": "node -e \"console.log('[database] Package ready.')\"",
+    "migrate": "node src/migrate.js",
+    "seed": "node src/seeds/index.js",
+    "reset": "node src/migrate.js --reset && node src/seeds/index.js",
+    "test": "node test/database.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^16.4.5",
+    "mysql2": "^3.12.0"
+  }
+}

@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', sans-serif;
+    --font-hind: 'Hind Siliguri', sans-serif;
+  }
+}
+
+.font-inter {
+  font-family: var(--font-inter), sans-serif;
+}
+
+.font-hind {
+  font-family: var(--font-hind), 'Hind Siliguri', sans-serif;
+}
+
+@keyframes bounceShort {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-bounce-short {
+  animation: bounceShort 3s ease-in-out infinite;
+}

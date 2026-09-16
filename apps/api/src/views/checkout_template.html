@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>দেনা নেয়া - পেমেন্ট চেকআউট (DenaNeya Secure Checkout)</title>
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-hover: #047857;
+      --bkash: #e2136e;
+      --nagad: #f7941d;
+      --rocket: #8c3494;
+      --upay: #005b9f;
+      --dark: #0f172a;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-600: #475569;
+      --gray-800: #1e293b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", sans-serif; }
+    body { background-color: var(--gray-50); color: var(--gray-800); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+    .container { width: 100%; max-width: 460px; background: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04); overflow: hidden; border: 1px solid var(--gray-200); }
+    .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 20px; text-align: center; position: relative; }
+    .brand-name { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .invoice-info { font-size: 0.85rem; color: #94a3b8; margin-top: 4px; }
+    .amount-box { margin-top: 16px; background: rgba(255, 255, 255, 0.08); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.12); }
+    .amount-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #cbd5e1; }
+    .amount-value { font-size: 1.85rem; font-weight: 800; color: #34d399; margin-top: 2px; }
+    .countdown-bar { background: #fef2f2; border-bottom: 1px solid #fee2e2; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: #991b1b; font-weight: 600; }
+    .countdown-timer { font-family: monospace; font-size: 0.95rem; background: #fee2e2; padding: 2px 8px; border-radius: 4px; }
+    .content { padding: 20px; }
+    .tabs-header { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; border-bottom: 1px solid var(--gray-200); margin-bottom: 16px; scrollbar-width: none; }
+    .tabs-header::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: 1; min-width: 80px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--gray-200); background: #ffffff; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; white-space: nowrap; }
+    .tab-btn.active { background: var(--gray-800); color: #ffffff; border-color: var(--gray-800); }
+    .tab-btn.bkash.active { background: var(--bkash); border-color: var(--bkash); }
+    .tab-btn.nagad.active { background: var(--nagad); border-color: var(--nagad); }
+    .tab-btn.rocket.active { background: var(--rocket); border-color: var(--rocket); }
+    .tab-btn.upay.active { background: var(--upay); border-color: var(--upay); }
+    .account-card { background: var(--gray-50); border: 1px dashed var(--gray-200); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+    .account-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .account-label { font-size: 0.8rem; color: var(--gray-600); }
+    .account-val { font-size: 0.95rem; font-weight: 700; color: var(--gray-800); font-family: monospace; }
+    .copy-btn { background: #ffffff; border: 1px solid var(--gray-200); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
+    .copy-btn:hover { background: var(--gray-100); }
+    .steps-list { font-size: 0.82rem; line-height: 1.5; color: var(--gray-600); margin-bottom: 16px; padding-left: 20px; }
+    .steps-list li { margin-bottom: 4px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; color: var(--gray-800); }
+    .form-input { width: 100%; padding: 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; font-family: monospace; }
+    .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
+    .submit-btn { width: 100%; background: var(--primary); color: #ffffff; border: none; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .submit-btn:hover { background: var(--primary-hover); }
+    .submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    .alert { padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; display: none; }
+    .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .footer { text-align: center; padding: 14px; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid var(--gray-200); background: #ffffff; }
+    .footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .spinner { border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 2px solid #ffffff; width: 16px; height: 16px; animation: spin 0.8s linear infinite; display: none; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-name" id="brand-name">DenaNeya Merchant</div>
+      <div class="invoice-info" id="invoice-info">Invoice #--</div>
+      <div class="amount-box">
+        <div class="amount-label" id="lbl-amount">সর্বমোট প্রদেয় টাকা (Amount to Pay)</div>
+        <div class="amount-value" id="amount-val">৳ 0.00</div>
+      </div>
+    </div>
+
+    <div class="countdown-bar">
+      <span>সময় বাকি (Time Remaining):</span>
+      <span class="countdown-timer" id="timer">15:00</span>
+    </div>
+
+    <div class="content">
+      <div id="alert-box" class="alert"></div>
+
+      <div class="tabs-header" id="gateway-tabs">
+        <!-- Gateway tabs dynamically rendered -->
+      </div>
+
+      <div id="gateway-details">
+        <div class="account-card">
+          <div class="account-row">
+            <span class="account-label" id="lbl-acc-type">অ্যাকাউন্ট টাইপ (Type):</span>
+            <span class="account-val" id="acc-type">Merchant</span>
+          </div>
+          <div class="account-row">
+            <span class="account-label">নম্বর (Number):</span>
+            <div>
+              <span class="account-val" id="acc-num">01XXXXXXXXX</span>
+              <button class="copy-btn" onclick="copyText('acc-num')">Copy</button>
+            </div>
+          </div>
+          <div class="account-row" id="ussd-row">
+            <span class="account-label">ডায়াল কোড (USSD):</span>
+            <div>
+              <span class="account-val" id="ussd-code">*247#</span>
+              <button class="copy-btn" onclick="copyText('ussd-code')">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <ol class="steps-list" id="steps-guide">
+          <li>আপনার মোবাইল থেকে ডায়াল করুন অথবা অ্যাপে যান।</li>
+          <li><b>Payment</b> অথবা <b>Send Money</b> অপশনটি বেছে নিন।</li>
+          <li>উপরে প্রদত্ত নম্বরে সঠিক পরিমাণ টাকা পাঠান।</li>
+          <li>রেফারেন্স হিসেবে ইনভয়েস নম্বর দিন।</li>
+          <li>লেনদেন শেষে প্রাপ্ত ট্রানজেকশন আইডি (TrxID) নিচের বক্সে দিন।</li>
+        </ol>
+
+        <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
+          <div class="form-group">
+            <label class="form-label" for="trx-input">ট্রানজেকশন আইডি (TrxID / Transaction ID):</label>
+            <input type="text" id="trx-input" class="form-input" placeholder="e.g. BLK998877" required autocomplete="off" maxlength="32">
+          </div>
+          <button type="submit" id="submit-btn" class="submit-btn">
+            <span class="spinner" id="btn-spinner"></span>
+            <span id="btn-text">পেমেন্ট নিশ্চিত করুন (Verify Payment)</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="footer">
+      Powered by <b>দেনা নেয়া v2.0</b> | 100% সুরক্ষিত MFS অটোমেশন
+    </div>
+  </div>
+
+  <script>
+    const INVOICE_ID = window.location.pathname.split('/').filter(Boolean).pop();
+    let invoiceData = null;
+    let selectedGateway = null;
+    let timerInterval = null;
+    let pollInterval = null;
+
+    async function loadInvoice() {
+      try {
+        const res = await fetch(`/api/invoices/${INVOICE_ID}/public`);
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          showAlert(data.message || 'Invoice not found or invalid.', 'danger');
+          return;
+        }
+        invoiceData = data.invoice;
+        renderInvoice(data);
+      } catch (err) {
+        showAlert('পেমেন্ট সার্ভারের সাথে সংযোগ করা সম্ভব হচ্ছে না।', 'danger');
+      }
+    }
+
+    function renderInvoice(data) {
+      const inv = data.invoice;
+      document.getElementById('brand-name').innerText = inv.brand_name || 'DenaNeya Checkout';
+      document.getElementById('invoice-info').innerText = `Invoice #${inv.invoice_number} • ${inv.customer_name}`;
+      document.getElementById('amount-val').innerText = `৳ ${Number(inv.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+      if (inv.status === 'PAID') {
+        showPaidState(inv);
+        return;
+      }
+
+      if (inv.is_expired || inv.status === 'EXPIRED') {
+        showExpiredState();
+        return;
+      }
+
+      startCountdown(inv.time_remaining_seconds || 900);
+      renderGateways(data.gateways || []);
+      startPolling();
+    }
+
+    function renderGateways(gateways) {
+      const tabs = document.getElementById('gateway-tabs');
+      tabs.innerHTML = '';
+      if (!gateways || gateways.length === 0) {
+        tabs.innerHTML = '<div style="font-size:0.8rem;color:#64748b;">কোন সক্রিয় পেমেন্ট চ্যানেল নেই।</div>';
+        return;
+      }
+      gateways.forEach((gw, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${gw.channel_name.toLowerCase()} ${idx === 0 ? 'active' : ''}`;
+        btn.innerText = gw.channel_name;
+        btn.onclick = () => selectGateway(gw, btn);
+        tabs.appendChild(btn);
+      });
+      selectGateway(gateways[0]);
+    }
+
+    function selectGateway(gw, btn) {
+      selectedGateway = gw;
+      if (btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+      document.getElementById('acc-type').innerText = gw.account_type || 'Personal';
+      document.getElementById('acc-num').innerText = gw.account_number || '';
+      const ussdRow = document.getElementById('ussd-row');
+      if (gw.ussd_code) {
+        ussdRow.style.display = 'flex';
+        document.getElementById('ussd-code').innerText = gw.ussd_code;
+      } else {
+        ussdRow.style.display = 'none';
+      }
+    }
+
+    function startCountdown(seconds) {
+      let remaining = seconds;
+      const el = document.getElementById('timer');
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          showExpiredState();
+          return;
+        }
+        remaining--;
+        const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+        const s = (remaining % 60).toString().padStart(2, '0');
+        el.innerText = `${m}:${s}`;
+      }, 1000);
+    }
+
+    async function handlePaymentSubmit(e) {
+      e.preventDefault();
+      const trxInput = document.getElementById('trx-input');
+      const trxId = trxInput.value.trim().toUpperCase();
+      if (!trxId || trxId.length < 6) {
+        showAlert('অনুগ্রহ করে সঠিক ট্রানজেকশন আইডি দিন।', 'danger');
+        return;
+      }
+
+      setLoading(true);
+      hideAlert();
+
+      try {
+        const res = await fetch('/api/payment/submit-trx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoice_id: INVOICE_ID, trx_id: trxId })
+        });
+        const data = await res.json();
+        setLoading(false);
+
+        if (res.ok && data.success) {
+          showPaidState(data);
+        } else {
+          showAlert(data.message || 'ট্রানজেকশন যাচাই ব্যর্থ হয়েছে। TrxID সঠিক কি না পরীক্ষা করুন।', 'danger');
+        }
+      } catch (err) {
+        setLoading(false);
+        showAlert('পেমেন্ট সার্ভারে অনুরোধ পাঠাতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।', 'danger');
+      }
+    }
+
+    function startPolling() {
+      clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/payment/status/${INVOICE_ID}`);
+          const data = await res.json();
+          if (data.status === 'PAID') {
+            clearInterval(pollInterval);
+            showPaidState(data);
+          } else if (data.status === 'EXPIRED') {
+            clearInterval(pollInterval);
+            showExpiredState();
+          }
+        } catch (_) {}
+      }, 2500);
+    }
+
+    function showPaidState(inv) {
+      clearInterval(timerInterval);
+      clearInterval(pollInterval);
+      document.getElementById('gateway-details').innerHTML = `
+        <div style="text-align: center; padding: 24px 0;">
+          <div style="width: 56px; height: 56px; background: #ecfdf5; color: #059669; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px;">✓</div>
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: #065f46; margin-bottom: 8px;">পেমেন্ট সফল হয়েছে!</h2>
+          <p style="font-size: 0.85rem; color: #475569; margin-bottom: 16px;">TrxID: <b>${inv.trx_id || ''}</b></p>
+          ${inv.redirect_url ? `<a href="${inv.redirect_url}" style="display:inline-block; background:#059669; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600;">অর্ডারে ফিরে যান</a>` : ''}
+        </div>
+      `;
+    }
+
+    function showExpiredState() {
+      clearInterval(timerInterval);
+      clearInterval(pollInterval);
+      document.getElementById('gateway-details').innerHTML = `
+        <div style="text-align: center; padding: 24px 0;">
+          <div style="width: 56px; height: 56px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px;">✕</div>
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: #991b1b; margin-bottom: 8px;">ইনভয়েসের মেয়াদ শেষ (Expired)</h2>
+          <p style="font-size: 0.85rem; color: #64748b;">এই ইনভয়েসের ১৫ মিনিটের সময়সীমা পার হয়ে গেছে। অনুগ্রহ করে নতুন ইনভয়েস তৈরি করুন।</p>
+        </div>
+      `;
+    }
+
+    function copyText(id) {
+      const text = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(text).then(() => alert('কপি করা হয়েছে: ' + text));
+    }
+
+    function showAlert(msg, type) {
+      const box = document.getElementById('alert-box');
+      box.className = `alert alert-${type}`;
+      box.innerText = msg;
+      box.style.display = 'block';
+    }
+
+    function hideAlert() {
+      document.getElementById('alert-box').style.display = 'none';
+    }
+
+    function setLoading(isLoading) {
+      const btn = document.getElementById('submit-btn');
+      const spinner = document.getElementById('btn-spinner');
+      const text = document.getElementById('btn-text');
+      btn.disabled = isLoading;
+      spinner.style.display = isLoading ? 'inline-block' : 'none';
+      text.innerText = isLoading ? 'যাচাই করা হচ্ছে...' : 'পেমেন্ট নিশ্চিত করুন (Verify Payment)';
+    }
+
+    window.onload = loadInvoice;
+  </script>
+</body>
+</html>

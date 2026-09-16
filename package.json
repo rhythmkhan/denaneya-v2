@@ -1,0 +1,49 @@
+{
+  "name": "denaneya-monorepo",
+  "version": "2.0.0",
+  "description": "দেনা নেয়া ভার্সন টু (DenaNeya v2.0) - Hardened MFS Payment Automation Platform",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n \"api,dashboard,web\" -c \"blue,green,magenta\" \"npm run dev:api\" \"npm run dev:dashboard\" \"npm run dev:web\"",
+    "dev:api": "npm run --workspace=apps/api dev",
+    "dev:dashboard": "npm run --workspace=apps/dashboard dev",
+    "dev:web": "npm run --workspace=apps/web dev",
+    "build": "npm run build:packages && npm run build:apps",
+    "build:packages": "npm run --workspace=packages/shared build && npm run --workspace=packages/database build",
+    "build:apps": "npm run --workspace=apps/api build && npm run --workspace=apps/dashboard build && npm run --workspace=apps/web build",
+    "test": "npm run test:shared && npm run test:database",
+    "test:shared": "npm run --workspace=packages/shared test",
+    "test:database": "npm run --workspace=packages/database test",
+    "test:api": "npm run --workspace=apps/api test",
+    "test:security": "node tests/security/securityRunner.js",
+    "test:e2e": "node tests/e2e/master_e2e_runner.js",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "typecheck": "tsc -p packages/shared/tsconfig.json && tsc -p apps/api/tsconfig.json && tsc -p apps/dashboard/tsconfig.json && tsc -p apps/web/tsconfig.json",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:migrate": "npm run --workspace=packages/database migrate",
+    "db:seed": "npm run --workspace=packages/database seed",
+    "db:reset": "npm run --workspace=packages/database reset",
+    "clean": "rimraf node_modules packages/*/node_modules packages/*/dist apps/*/node_modules apps/*/dist apps/*/.next dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

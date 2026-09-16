@@ -1,0 +1,611 @@
+export interface GatewayItem {
+  id: string;
+  name: string;
+  displayName: string;
+  tab: 'Mobile' | 'International' | 'Bank';
+  category: string;
+  ussdCode: string | null;
+  currency: string;
+  accountTypes: string[];
+  description: string;
+  logoUrl?: string;
+  color?: string;
+  popular?: boolean;
+}
+
+export const PAYMENT_GATEWAYS: GatewayItem[] = [
+  // Mobile (33 Channels)
+  {
+    id: 'bkash',
+    name: 'bKash',
+    displayName: 'bKash (বিকাশ)',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*247#',
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant', 'Agent'],
+    description: 'Direct SMS automated personal/merchant payment reconciliation with instant confirmation.',
+    color: '#D12053',
+    popular: true
+  },
+  {
+    id: 'nagad',
+    name: 'Nagad',
+    displayName: 'Nagad (নগদ)',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*167#',
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'Post Office digital wallet with zero-cost personal cash-in & real-time sync.',
+    color: '#F7941D',
+    popular: true
+  },
+  {
+    id: 'upay',
+    name: 'Upay',
+    displayName: 'Upay (উপায়)',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*268#',
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'UCB fintech network with multi-tier biometric security and lowest cash-out rates.',
+    color: '#002D72',
+    popular: true
+  },
+  {
+    id: 'rocket',
+    name: 'Rocket',
+    displayName: 'DBBL Rocket (রকেট)',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*322#',
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'Dutch-Bangla Bank mobile financial service with 12-digit account validation.',
+    color: '#8C3494',
+    popular: true
+  },
+  {
+    id: 'pathaopay',
+    name: 'PathaoPay',
+    displayName: 'PathaoPay',
+    tab: 'Mobile',
+    category: 'Digital Wallet',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'Integrated digital wallet ecosystem for on-demand transport and merchants.'
+  },
+  {
+    id: 'mcash',
+    name: 'mCash',
+    displayName: 'mCash (Islami Bank)',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*259#',
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'Shariah-compliant mobile financial service powered by IBBL.'
+  },
+  {
+    id: 'ok_wallet',
+    name: 'OK Wallet',
+    displayName: 'OK Wallet (One Bank)',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*269#',
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'ONE Bank digital mobile wallet for bills, remittances, and retail payments.'
+  },
+  {
+    id: 'cellfin',
+    name: 'CellFin',
+    displayName: 'CellFin (IBBL)',
+    tab: 'Mobile',
+    category: 'Smart Banking App',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Account', 'Card', 'MFS'],
+    description: 'All-in-one digital omnichannel banking app with instant A/C and card transfer.'
+  },
+  {
+    id: 'tap',
+    name: 'Tap',
+    displayName: 'Tap (Trust Axiata)',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*201#',
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'Trust Axiata Pay mobile lifestyle payment platform with instant cashback.'
+  },
+  {
+    id: 'aamarpay',
+    name: 'aamarPay',
+    displayName: 'aamarPay Gateway',
+    tab: 'Mobile',
+    category: 'Payment Aggregator',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['PGW Redirect'],
+    description: 'Leading Bangladeshi digital PGW supporting multi-currency and cards.'
+  },
+  {
+    id: 'eps',
+    name: 'EPS',
+    displayName: 'Easy Payment System (EPS)',
+    tab: 'Mobile',
+    category: 'Payment Aggregator',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['PGW Redirect'],
+    description: 'Bangladesh Bank approved electronic payment services platform.'
+  },
+  {
+    id: 'sslcommerz',
+    name: 'SSLCommerz',
+    displayName: 'SSLCommerz All-in-One',
+    tab: 'Mobile',
+    category: 'Payment Aggregator',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Corporate PGW'],
+    description: 'First and largest payment gateway aggregator in Bangladesh.'
+  },
+  {
+    id: 'bkash_sslcommerz',
+    name: 'bKash (SSLCommerz)',
+    displayName: 'bKash via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'Dedicated bKash tokenized gateway checkout routing via SSLCommerz.'
+  },
+  {
+    id: 'cellfin_sslcommerz',
+    name: 'Cellfin (SSLCommerz)',
+    displayName: 'Cellfin via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'Direct IBBL Cellfin wallet routing integration via SSLCommerz.'
+  },
+  {
+    id: 'ipay_sslcommerz',
+    name: 'Ipay (SSLCommerz)',
+    displayName: 'iPay via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'Seamless digital PSP payment integration via SSLCommerz pipeline.'
+  },
+  {
+    id: 'nagad_sslcommerz',
+    name: 'Nagad (SSLCommerz)',
+    displayName: 'Nagad via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'Tokenized Nagad online checkout channel hosted through SSLCommerz.'
+  },
+  {
+    id: 'ok_wallet_sslcommerz',
+    name: 'OK Wallet (SSLCommerz)',
+    displayName: 'OK Wallet via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'ONE Bank OK Wallet gateway checkout powered by SSLCommerz.'
+  },
+  {
+    id: 'rocket_sslcommerz',
+    name: 'Rocket (SSLCommerz)',
+    displayName: 'Rocket via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'Rocket DBBL online direct PGW channel routed via SSLCommerz.'
+  },
+  {
+    id: 'tap_sslcommerz',
+    name: 'Tap (SSLCommerz)',
+    displayName: 'Tap via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'Trust Axiata Pay checkout direct integration via SSLCommerz.'
+  },
+  {
+    id: 'upay_sslcommerz',
+    name: 'Upay (SSLCommerz)',
+    displayName: 'Upay via SSLCommerz',
+    tab: 'Mobile',
+    category: 'Aggregator Sub-channel',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Aggregator Sub-channel'],
+    description: 'Upay UCB tokenized online payment processing via SSLCommerz.'
+  },
+  {
+    id: 'shurjopay',
+    name: 'shurjoPay',
+    displayName: 'shurjoPay (সূর্যপে)',
+    tab: 'Mobile',
+    category: 'Payment Aggregator',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['PGW Redirect'],
+    description: 'Licensed Payment System Operator (PSO) offering seamless checkout APIs.'
+  },
+  {
+    id: 'paystation',
+    name: 'PayStation',
+    displayName: 'PayStation Gateway',
+    tab: 'Mobile',
+    category: 'Payment Aggregator',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['PGW Redirect'],
+    description: 'Robust multi-channel payment gateway solution for eCommerce merchants.'
+  },
+  {
+    id: 'pathaopay_merchant_api',
+    name: 'PathaoPay Merchant API',
+    displayName: 'PathaoPay Merchant API',
+    tab: 'Mobile',
+    category: 'Direct Merchant API',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['API Checkout'],
+    description: 'Direct S2S API checkout integration with Pathao user ecosystem.'
+  },
+  {
+    id: 'nagad_merchant_api',
+    name: 'Nagad Merchant API',
+    displayName: 'Nagad Direct Merchant API',
+    tab: 'Mobile',
+    category: 'Direct Merchant API',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['API Checkout'],
+    description: 'Direct official Nagad merchant API with public key RSA signature verification.'
+  },
+  {
+    id: 'ipay_merchant',
+    name: 'iPay Merchant',
+    displayName: 'iPay Merchant Direct',
+    tab: 'Mobile',
+    category: 'Digital Wallet',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Merchant API'],
+    description: 'Official digital payment service provider for business retail transactions.'
+  },
+  {
+    id: 'ipay_personal',
+    name: 'iPay Personal',
+    displayName: 'iPay Personal Wallet',
+    tab: 'Mobile',
+    category: 'Digital Wallet',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Personal'],
+    description: 'Peer-to-peer personal e-wallet payment receiving and tracking.'
+  },
+  {
+    id: 'telecash_agent',
+    name: 'Telecash Agent',
+    displayName: 'Telecash Agent (Southeast Bank)',
+    tab: 'Mobile',
+    category: 'MFS Agent',
+    ussdCode: '*0#',
+    currency: 'BDT',
+    accountTypes: ['Agent'],
+    description: 'Southeast Bank Telecash agent assisted banking network.'
+  },
+  {
+    id: 'telecash_merchant',
+    name: 'Telecash Merchant',
+    displayName: 'Telecash Merchant',
+    tab: 'Mobile',
+    category: 'MFS Merchant',
+    ussdCode: '*0#',
+    currency: 'BDT',
+    accountTypes: ['Merchant'],
+    description: 'Southeast Bank Telecash merchant payment collection interface.'
+  },
+  {
+    id: 'telecash_personal',
+    name: 'Telecash Personal',
+    displayName: 'Telecash Personal',
+    tab: 'Mobile',
+    category: 'MFS Wallet',
+    ussdCode: '*0#',
+    currency: 'BDT',
+    accountTypes: ['Personal'],
+    description: 'Personal Telecash account receiving with instant notification parsing.'
+  },
+  {
+    id: 'bangla_qr',
+    name: 'Bangla QR',
+    displayName: 'Bangla QR (বাংলা কিউআর)',
+    tab: 'Mobile',
+    category: 'Interoperable QR',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Static QR', 'Dynamic QR'],
+    description: 'National interoperable QR standard supported by all BD banks and MFS apps.',
+    popular: true
+  },
+  {
+    id: 'bangla_qr_v2',
+    name: 'Bangla QR V2',
+    displayName: 'Bangla QR V2 (Dynamic)',
+    tab: 'Mobile',
+    category: 'Interoperable QR',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Dynamic EMV QR'],
+    description: 'Dynamic invoice-embedded EMVCo Bangla QR standard with auto-reconcile.'
+  },
+  {
+    id: 'pubali_bank',
+    name: 'Pubali Bank Mobile',
+    displayName: 'Pubali Bank (PI Banking)',
+    tab: 'Mobile',
+    category: 'Smart Banking App',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['PI Banking App'],
+    description: 'Pubali Integrated Banking app mobile transfer and collection mechanism.'
+  },
+  {
+    id: 'tally_pay',
+    name: 'Tally Pay',
+    displayName: 'Tally Pay (ট্যালি পে)',
+    tab: 'Mobile',
+    category: 'Digital Wallet',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Personal', 'Merchant'],
+    description: 'Popular SME digital ledger wallet for micro-merchants and retail shops.'
+  },
+
+  // International (8 Channels)
+  {
+    id: 'stripe',
+    name: 'Stripe',
+    displayName: 'Stripe Payments',
+    tab: 'International',
+    category: 'Card & Global Gateway',
+    ussdCode: null,
+    currency: 'USD',
+    accountTypes: ['Credit/Debit Cards', 'Apple Pay', 'Google Pay'],
+    description: 'Global payment infrastructure for Visa, Mastercard, Amex, and digital wallets.',
+    popular: true
+  },
+  {
+    id: 'binance',
+    name: 'Binance Pay',
+    displayName: 'Binance Pay (Crypto)',
+    tab: 'International',
+    category: 'Cryptocurrency',
+    ussdCode: null,
+    currency: 'USDT',
+    accountTypes: ['USDT', 'BTC', 'ETH', 'BNB'],
+    description: 'Zero-gas fee instant contactless cryptocurrency payment processing.',
+    popular: true
+  },
+  {
+    id: 'oxapay',
+    name: 'OxaPay',
+    displayName: 'OxaPay Crypto Gateway',
+    tab: 'International',
+    category: 'Cryptocurrency',
+    ussdCode: null,
+    currency: 'USDT',
+    accountTypes: ['Web3 Crypto', 'TRC-20', 'ERC-20'],
+    description: 'Automated decentralized cryptocurrency gateway with instant settlement.'
+  },
+  {
+    id: 'wise',
+    name: 'Wise',
+    displayName: 'Wise (TransferWise)',
+    tab: 'International',
+    category: 'Multi-Currency Account',
+    ussdCode: null,
+    currency: 'USD',
+    accountTypes: ['Borderless Account', 'ACH', 'SEPA'],
+    description: 'Real mid-market exchange rate international money transfers and invoices.'
+  },
+  {
+    id: 'payoneer',
+    name: 'Payoneer',
+    displayName: 'Payoneer Business',
+    tab: 'International',
+    category: 'Global Commercial Account',
+    ussdCode: null,
+    currency: 'USD',
+    accountTypes: ['Receiving Accounts', 'P2P Transfer'],
+    description: 'Global commerce payment solution for cross-border freelancers and exporters.'
+  },
+  {
+    id: 'payeer',
+    name: 'Payeer',
+    displayName: 'Payeer Multi-Wallet',
+    tab: 'International',
+    category: 'E-Wallet & Exchange',
+    ussdCode: null,
+    currency: 'USD',
+    accountTypes: ['Fiat Wallet', 'Crypto'],
+    description: 'International electronic wallet supporting 200+ countries with instant exchange.'
+  },
+  {
+    id: 'paypal',
+    name: 'PayPal',
+    displayName: 'PayPal International',
+    tab: 'International',
+    category: 'Global E-Wallet',
+    ussdCode: null,
+    currency: 'USD',
+    accountTypes: ['PayPal Balance', 'International Cards'],
+    description: 'Global standard for consumer and merchant cross-border online payments.'
+  },
+  {
+    id: 'taptap_send',
+    name: 'TapTap Send',
+    displayName: 'TapTap Send Remittance',
+    tab: 'International',
+    category: 'Cross-border Remittance',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Direct MFS Remittance'],
+    description: 'Fast cross-border remittances from UK, US, EU directly to Bangladesh MFS.'
+  },
+
+  // Bank (11 Channels)
+  {
+    id: 'al_arafah_islami_bank_plc',
+    name: 'Al-Arafah Islami Bank',
+    displayName: 'Al-Arafah Islami Bank PLC',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Corporate A/C', 'Retail A/C', 'NPSB/BEFTN'],
+    description: 'Full Islamic commercial banking deposits with instant RTGS/NPSB routing.'
+  },
+  {
+    id: 'islami_bank_bangladesh_plc',
+    name: 'Islami Bank Bangladesh',
+    displayName: 'Islami Bank Bangladesh PLC (IBBL)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Current A/C', 'Mudaraba A/C', 'CellFin Direct'],
+    description: 'Largest private commercial bank in Bangladesh with 400+ physical branches.',
+    popular: true
+  },
+  {
+    id: 'brac_bank_plc',
+    name: 'BRAC Bank',
+    displayName: 'BRAC Bank PLC (Astha Banking)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Corporate A/C', 'Astha App', 'NPSB'],
+    description: 'Pioneering SME-focused digital banking with Astha online instant transfers.',
+    popular: true
+  },
+  {
+    id: 'city_bank_plc',
+    name: 'City Bank',
+    displayName: 'City Bank PLC (Citytouch)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Citytouch App', 'Corporate A/C', 'Amex Direct'],
+    description: 'Premier retail and corporate bank in BD with Citytouch API integration.'
+  },
+  {
+    id: 'dutch_bangla_bank_plc',
+    name: 'Dutch-Bangla Bank',
+    displayName: 'Dutch-Bangla Bank PLC (DBBL)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Nexus Card', 'Core Banking A/C', 'Rocket Agent'],
+    description: 'Nationwide ATM & POS leader supporting NexusPay and online bank slips.',
+    popular: true
+  },
+  {
+    id: 'eastern_bank_plc',
+    name: 'Eastern Bank',
+    displayName: 'Eastern Bank PLC (EBL)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['EBL Connect', 'Corporate', 'Skybanking'],
+    description: 'High-tech consumer and export-import banking with Skybanking payment engine.'
+  },
+  {
+    id: 'ncc_bank_plc',
+    name: 'NCC Bank',
+    displayName: 'NCC Bank PLC',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Core A/C', 'Always On Banking'],
+    description: 'National Credit and Commerce Bank commercial deposit reconciliation.'
+  },
+  {
+    id: 'nrb_commercial_bank_plc',
+    name: 'NRB Commercial Bank',
+    displayName: 'NRB Commercial Bank PLC (NRBC)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['PLANET App', 'Sub-branch A/C'],
+    description: 'Modern branchless and micro-banking network across rural & urban zones.'
+  },
+  {
+    id: 'prime_bank_plc',
+    name: 'Prime Bank',
+    displayName: 'Prime Bank PLC (Altitude)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['PrimePay', 'Corporate A/C', 'Altitude App'],
+    description: 'Leading corporate transaction bank with PrimePay automated bulk collection.'
+  },
+  {
+    id: 'pubali_bank_plc',
+    name: 'Pubali Bank PLC',
+    displayName: 'Pubali Bank PLC (Corporate)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['Current A/C', 'Online Branch Deposit'],
+    description: 'Oldest and largest private bank network with instant clearing support.'
+  },
+  {
+    id: 'united_commercial_bank_plc',
+    name: 'United Commercial Bank',
+    displayName: 'United Commercial Bank PLC (UCB)',
+    tab: 'Bank',
+    category: 'Commercial Bank',
+    ussdCode: null,
+    currency: 'BDT',
+    accountTypes: ['UCB Upay Direct', 'Corporate A/C'],
+    description: 'Major private bank offering integrated Upay and core corporate settlements.'
+  }
+];
+
+export const GATEWAY_TABS = ['All', 'Mobile', 'International', 'Bank'] as const;
+export type GatewayTab = typeof GATEWAY_TABS[number];
