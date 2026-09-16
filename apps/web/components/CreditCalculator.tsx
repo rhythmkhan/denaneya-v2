@@ -54,7 +54,7 @@ export const CreditCalculator: React.FC = () => {
     };
   }, [monthlyInvoices, aov]);
 
-  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:5173';
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://dashboard-tawny-gamma-28.vercel.app';
 
   return (
     <section id="calculator" className="py-20 bg-gradient-to-b from-slate-50 to-white">

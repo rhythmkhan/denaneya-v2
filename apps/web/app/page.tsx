@@ -11,7 +11,7 @@ import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles, Smartphone } from 'luc
 
 export default function HomePage() {
   const { t, language } = useLanguage();
-  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:5173';
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://dashboard-tawny-gamma-28.vercel.app';
 
   return (
     <div className="flex flex-col min-h-screen">

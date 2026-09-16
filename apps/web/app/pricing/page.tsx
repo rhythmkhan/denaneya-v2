@@ -7,7 +7,7 @@ import { Check, Sparkles, HelpCircle, ArrowRight, ShieldCheck } from 'lucide-rea
 
 export default function PricingPage() {
   const { t, language } = useLanguage();
-  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:5173';
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://dashboard-tawny-gamma-28.vercel.app';
 
   const plans = [
     {
