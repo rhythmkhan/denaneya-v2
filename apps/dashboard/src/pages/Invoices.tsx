@@ -21,7 +21,9 @@ import {
   QrCode,
   AlertCircle,
   Clock,
-  ShieldAlert
+  ShieldAlert,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -101,6 +103,35 @@ export const Invoices: React.FC = () => {
     setTimeout(() => setCopiedLink(null), 2500);
   };
 
+  const handleExportCsv = () => {
+    const dataToExport = filteredInvoices.length > 0 ? filteredInvoices : invoices;
+    if (dataToExport.length === 0) {
+      alert('No invoice records to export.');
+      return;
+    }
+    const headers = ['Invoice Number', 'Customer Name', 'Customer Phone', 'Amount (BDT)', 'Status', 'TrxID', 'Gateway Method', 'Created At'];
+    const rows = dataToExport.map((inv) => [
+      `"${inv.invoice_number || inv.id}"`,
+      `"${(inv.customer_name || '').replace(/"/g, '""')}"`,
+      `"${(inv.customer_phone || '').replace(/"/g, '""')}"`,
+      inv.amount,
+      `"${inv.status}"`,
+      `"${inv.trx_id || ''}"`,
+      `"${inv.payment_method || 'MFS'}"`,
+      `"${inv.created_at || new Date().toISOString()}"`
+    ]);
+    const csvString = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `denaneya_invoices_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -166,14 +197,25 @@ export const Invoices: React.FC = () => {
             Create on-demand payment invoices and manage customer collection links
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => setIsBuilderOpen(true)}
-          leftIcon={<Plus className="w-4 h-4" />}
-        >
-          Create Custom Invoice
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="md"
+            onClick={handleExportCsv}
+            leftIcon={<Download className="w-4 h-4 text-emerald-600" />}
+          >
+            Export CSV
+          </Button>
+
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => setIsBuilderOpen(true)}
+            leftIcon={<Plus className="w-4 h-4" />}
+          >
+            Create Custom Invoice
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

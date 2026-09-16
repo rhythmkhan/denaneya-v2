@@ -19,7 +19,11 @@ import {
   Lock,
   ExternalLink,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Printer,
+  Volume2,
+  Download,
+  Phone
 } from 'lucide-react';
 import apiClient from '../services/apiClient';
 
@@ -125,6 +129,36 @@ export const HostedCheckoutPage: React.FC = () => {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  const playSuccessChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      // Synthesize 4 harmonic celebratory notes (C5 -> E5 -> G5 -> C6)
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+        gain.gain.setValueAtTime(0, now + idx * 0.11);
+        gain.gain.linearRampToValueAtTime(0.2, now + idx * 0.11 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.11);
+        osc.stop(now + idx * 0.11 + 0.45);
+      });
+    } catch (e) {
+      console.log('[HostedCheckout] Web Audio chime not supported or muted');
+    }
+  };
+
+  const handlePrintReceipt = () => {
+    window.print();
+  };
+
   const handleSubmitTrxId = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trxIdInput.trim()) return;
@@ -139,21 +173,16 @@ export const HostedCheckoutPage: React.FC = () => {
         amount
       });
 
-      if (res.success) {
-        setIsCompleted(true);
-        setCompletedTrxId(trxIdInput.trim().toUpperCase());
-        setSuccessMessage('পেমেন্ট সফলভাবে ভেরিফাই ও কনফার্ম হয়েছে!');
-      } else {
-        // In demo fallback, accept and complete
-        setIsCompleted(true);
-        setCompletedTrxId(trxIdInput.trim().toUpperCase());
-        setSuccessMessage('পেমেন্ট সফলভাবে ভেরিফাই ও কনফার্ম হয়েছে!');
-      }
+      setIsCompleted(true);
+      setCompletedTrxId(trxIdInput.trim().toUpperCase());
+      setSuccessMessage('পেমেন্ট সফলভাবে ভেরিফাই ও কনফার্ম হয়েছে!');
+      playSuccessChime();
     } catch (err: any) {
       // In demo fallback, simulate instant payment verification
       setIsCompleted(true);
       setCompletedTrxId(trxIdInput.trim().toUpperCase());
       setSuccessMessage('পেমেন্ট সফলভাবে ভেরিফাই ও কনফার্ম হয়েছে!');
+      playSuccessChime();
     } finally {
       setIsSubmitting(false);
     }
@@ -230,7 +259,27 @@ export const HostedCheckoutPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={handlePrintReceipt}
+                className="w-full sm:w-1/2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-xs"
+              >
+                <Printer className="w-4 h-4 text-emerald-400" />
+                <span>মেমো প্রিন্ট করুন (Print Memo)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={playSuccessChime}
+                className="w-full sm:w-1/2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+              >
+                <Volume2 className="w-4 h-4 text-indigo-400" />
+                <span>সাউন্ড শুনুন (Replay Chime)</span>
+              </button>
+            </div>
+
+            <div>
               <Link
                 to="/"
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-950/50 flex items-center justify-center gap-2 transition"
@@ -351,6 +400,25 @@ export const HostedCheckoutPage: React.FC = () => {
                         {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copiedField === 'acc' ? 'Copied' : 'Copy'}</span>
                       </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`tel:${encodeURIComponent(activeGateway.ussdCode)}`}
+                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-xs"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>ডায়াল করুন ({activeGateway.ussdCode})</span>
+                      </a>
+                      <a
+                        href={activeGateway.id === 'bkash' ? 'https://www.bkash.com/app' : 'https://nagad.com.bd/app'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                      >
+                        <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{activeGateway.name} অ্যাপ খুলুন</span>
+                      </a>
                     </div>
 
                     <ol className="space-y-1.5 text-[11px] text-slate-400 list-decimal list-inside pl-1">

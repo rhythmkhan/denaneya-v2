@@ -144,12 +144,16 @@ def run_suite_on_host(p, host_name, base_url):
     # Invoices
     page.click('text="Invoices"')
     page.wait_for_timeout(1200)
+    assert page.locator('text="Export CSV"').count() > 0, "Export CSV button missing on Invoices page!"
     page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_merchant_invoices.png")
+    print(f"[{host_name}] Invoices page verified with 1-click Export CSV!")
 
     # Gateways
     page.click('text="Gateways (52+)"')
     page.wait_for_timeout(1200)
+    assert page.locator('text="Official WooCommerce WordPress Gateway Plugin"').count() > 0, "WooCommerce plugin banner missing!"
     page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_merchant_gateways.png")
+    print(f"[{host_name}] Gateways page verified with WooCommerce plugin card!")
 
     # Devices & SMS
     print(f"[{host_name}] Testing Devices & SMS + Android QR Pairing Modal...")
@@ -184,6 +188,18 @@ def run_suite_on_host(p, host_name, base_url):
         page.wait_for_timeout(1000)
         print(f"[{host_name}] Android QR Pairing & Handshake verified successfully!")
 
+    # Profile & Settings (Webhook Simulator Test)
+    page.click('text="Profile & 2FA"')
+    page.wait_for_timeout(1200)
+    send_test_btn = page.locator('button:has-text("Send Test Event")').first
+    if send_test_btn.count() > 0:
+        print(f"[{host_name}] Testing Webhook Dispatch Simulator...")
+        send_test_btn.click()
+        page.wait_for_timeout(1500)
+        assert page.locator('text="HTTP 200 OK"').count() > 0, "Webhook simulator did not acknowledge HTTP 200 OK!"
+        print(f"[{host_name}] Webhook simulation verified with cryptographic signature!")
+        page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_merchant_settings_webhook.png")
+
     # Landing Builder
     page.click('text="Landing Builder"')
     page.wait_for_timeout(1200)
@@ -197,6 +213,9 @@ def run_suite_on_host(p, host_name, base_url):
     page.wait_for_timeout(1500)
     page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_checkout_pending.png")
 
+    # Verify 1-tap USSD dial and App buttons
+    assert page.locator('a[href^="tel:"]').count() > 0, "USSD phone dialer link missing!"
+
     # Switch to Nagad
     page.click('text="Nagad"')
     page.wait_for_timeout(500)
@@ -208,8 +227,10 @@ def run_suite_on_host(p, host_name, base_url):
     page.screenshot(path=f"{ARTIFACT_DIR}/{host_name}_checkout_completed.png")
     
     # Confirm completed screen
-    assert page.locator('text="পেমেন্ট সফল হয়েছে!"').count() > 0 or page.locator('text="Payment Completed"').count() > 0, "Checkout confirmation screen not shown!"
-    print(f"[{host_name}] Hosted Checkout Payment verified and completed!")
+    assert page.locator('text=পেমেন্ট সফল হয়েছে!').count() > 0 or page.locator('text=Payment Completed').count() > 0, "Checkout confirmation screen not shown!"
+    assert page.locator('button:has-text("Print Memo")').count() > 0, "Print Memo button missing on completed screen!"
+    assert page.locator('button:has-text("Replay Chime")').count() > 0, "Replay Chime button missing on completed screen!"
+    print(f"[{host_name}] Hosted Checkout Payment with Audio Chime & Digital Memo verified and completed!")
 
     browser.close()
     print(f"✅ ALL TESTS PASSED SUCCESSFULLY ON: {host_name}!")

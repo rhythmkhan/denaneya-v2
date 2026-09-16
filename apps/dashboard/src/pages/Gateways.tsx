@@ -22,7 +22,9 @@ import {
   ShieldCheck,
   Smartphone,
   Globe,
-  Building
+  Building,
+  Download,
+  Sparkles
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -78,6 +80,39 @@ export const Gateways: React.FC = () => {
           <p className="text-xs text-slate-500 mt-0.5">
             Configure, activate, and manage 52+ payment channels across Bangladesh and globally
           </p>
+        </div>
+      </div>
+
+      {/* WooCommerce Plugin Integration Card */}
+      <div className="p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl border border-indigo-500/30 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center shrink-0 shadow-md">
+            <CreditCard className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-black text-white">
+                Official WooCommerce WordPress Gateway Plugin
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                v2.0.0 Production Ready
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
+              Connect your WooCommerce store in 60 seconds. Accept automated bKash, Nagad, Rocket & Upay payments directly with 0% gateway commission.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
+          <a
+            href="/denaneya-payment-gateway.zip"
+            download="denaneya-payment-gateway.zip"
+            className="w-full md:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-md shadow-indigo-950/50"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Plugin (.ZIP)</span>
+          </a>
         </div>
       </div>
 

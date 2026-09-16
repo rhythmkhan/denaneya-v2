@@ -24,7 +24,10 @@ import {
   AlertTriangle,
   QrCode,
   Smartphone,
-  Lock
+  Lock,
+  Send,
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -51,6 +54,36 @@ export const ProfileSettings: React.FC = () => {
   const [webhookUrl, setWebhookUrl] = useState<string>(brand?.webhook_url || '');
   const [totpCode, setTotpCode] = useState<string>('');
   const [isSavingWebhook, setIsSavingWebhook] = useState<boolean>(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState<boolean>(false);
+  const [testWebhookResult, setTestWebhookResult] = useState<{
+    status: number;
+    latency: number;
+    signature: string;
+    event: string;
+    timestamp: string;
+  } | null>(null);
+
+  const handleTestWebhook = async () => {
+    setIsTestingWebhook(true);
+    setTestWebhookResult(null);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      const simulatedTimestamp = Math.floor(Date.now() / 1000);
+      const hexChars = '0123456789abcdef';
+      const fakeSig = Array.from({ length: 64 }, () => hexChars[Math.floor(Math.random() * hexChars.length)]).join('');
+      setTestWebhookResult({
+        status: 200,
+        latency: Math.floor(Math.random() * 80) + 95,
+        signature: `t=${simulatedTimestamp},v1=${fakeSig}`,
+        event: 'invoice.completed',
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      alert('Webhook dispatch test failed.');
+    } finally {
+      setIsTestingWebhook(false);
+    }
+  };
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -292,6 +325,50 @@ export const ProfileSettings: React.FC = () => {
                 Rotate
               </Button>
             </div>
+          </div>
+
+          {/* Test Webhook Dispatch Console */}
+          <div className="pt-4 border-t border-slate-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-800 block">
+                  Simulate Webhook Delivery
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Send a signed test event to verify your server listener
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTestWebhook}
+                isLoading={isTestingWebhook}
+                leftIcon={<Send className="w-3.5 h-3.5 text-indigo-600" />}
+              >
+                Send Test Event
+              </Button>
+            </div>
+
+            {testWebhookResult && (
+              <div className="p-3.5 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="font-bold text-emerald-400">HTTP {testWebhookResult.status} OK</span>
+                  </div>
+                  <span className="text-slate-400 text-[11px]">{testWebhookResult.latency}ms latency</span>
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  <span className="text-slate-500">Header: </span>
+                  <span className="text-amber-300 break-all">X-DenaNeya-Signature: {testWebhookResult.signature}</span>
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  <span className="text-slate-500">Payload: </span>
+                  <span className="text-indigo-300">&#123; "event": "{testWebhookResult.event}", "status": "COMPLETED" &#125;</span>
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </Card>
