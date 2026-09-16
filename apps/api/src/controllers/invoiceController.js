@@ -189,7 +189,8 @@ export async function renderHostedCheckout(req, res) {
     // Otherwise serve high-performance standalone fallback checkout HTML
     const templatePath = path.resolve(__dirname, '../views/checkout_template.html');
     if (fs.existsSync(templatePath)) {
-      const html = fs.readFileSync(templatePath, 'utf8');
+      let html = fs.readFileSync(templatePath, 'utf8');
+      html = html.replace('<div class="container">', `<div class="container" data-invoice-id="${invoiceId}"><!-- Invoice: ${invoiceId} -->`);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.status(200).send(html);
     }

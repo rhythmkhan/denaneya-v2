@@ -15,12 +15,13 @@ const { getDatabase } = require('../connection.js');
  * @param {Object} [dbInstance] - Database driver from getDatabase()
  * @param {Object} [options]
  * @param {boolean} [options.clean=true] - Delete existing demo records first
- * @param {boolean} [options.seedAll52=false] - Also seed all 52 catalog gateways for demo brand
+ * @param {boolean} [options.seedAll52=true] - Also seed all 52 catalog gateways for demo brand
  * @returns {Promise<Object>} Seeding statistics
  */
 async function runSeed(dbInstance = null, options = {}) {
   const db = dbInstance || getDatabase();
-  const { clean = true, seedAll52 = false } = options;
+  const { clean = true, seedAll52 = true } = options;
+
   const isSqlite = db.type === 'sqlite';
 
   console.log(`[Seeder] Starting DenaNeya v2.0 Seeding for dialect: ${db.type}...`);
@@ -119,11 +120,29 @@ async function runSeed(dbInstance = null, options = {}) {
     ]);
   }
 
-  // Optional: Seed all 52 gateways into the brand
+  // Optional: Seed catalog gateways into the brand (deduplicating against active demo gateways)
   let seeded52Count = 0;
   if (seedAll52) {
-    console.log(`[Seeder] Seeding all ${catalog.GATEWAY_CATALOG.length} Catalog Gateways for Brand ${fixtures.DEMO_BRAND_ID}...`);
+    console.log(`[Seeder] Seeding Catalog Gateways for Brand ${fixtures.DEMO_BRAND_ID}...`);
+    const activeChannelNames = new Set(
+      fixtures.ACTIVE_GATEWAYS_SEED.map((g) => g.channel_name.toLowerCase())
+    );
+    // Also include normalized variants so City Bank PLC doesn't duplicate City Bank
+    activeChannelNames.add('city bank plc');
+
     for (const catGw of catalog.GATEWAY_CATALOG) {
+      // Skip if channel is already seeded with real active credentials (e.g. bKash 01813896400)
+      const catName = catGw.name ? catGw.name.toLowerCase() : '';
+      const catId = catGw.id ? catGw.id.toLowerCase() : '';
+      if (
+        activeChannelNames.has(catName) ||
+        activeChannelNames.has(catId) ||
+        catName.includes('city bank') ||
+        catId.includes('city_bank')
+      ) {
+        continue;
+      }
+
       const gwId = `gw_${catGw.id}_catalog`;
       const sql = isSqlite
         ? `INSERT OR REPLACE INTO gateways (id, brand_id, channel_name, category, account_type, account_number, routing_number, branch_name, district, ussd_code, fee_percentage, fee_fixed, exchange_rate, fields_json, status, created_at)

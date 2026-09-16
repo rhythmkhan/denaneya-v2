@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getDatabase } = require('./connection.js');
+const { dbConfig } = require('./config.js');
 
 const TABLES_DROP_ORDER = [
   'affiliate_referrals',
@@ -36,7 +37,30 @@ async function runMigrations(dbInstance = null, options = {}) {
   console.log(`[Migrator] Starting database migration for dialect: ${db.type}...`);
 
   if (reset) {
+    // HARDENED SAFETY GUARD: Prevent accidental drop of production or remote MySQL database
+    if (db.type === 'mysql') {
+      const isProd = process.env.NODE_ENV === 'production' || !process.env.NODE_ENV;
+      const host = (dbConfig.host || '').toLowerCase();
+      const isRemote = host && !['localhost', '127.0.0.1', '::1'].includes(host);
+      const isAuthorized =
+        process.env.CONFIRM_PRODUCTION_RESET === 'true' ||
+        process.env.ALLOW_PRODUCTION_DROP === 'true' ||
+        process.env.ALLOW_PRODUCTION_RESET === 'true' ||
+        process.argv.includes('--force-production-reset');
+
+      if ((isProd || isRemote) && !isAuthorized) {
+        const errorMsg =
+          `[Migrator FATAL SAFETY ABORT] Table drop/reset requested against MySQL database ` +
+          `(host: ${dbConfig.host}, database: ${dbConfig.database}, NODE_ENV: ${process.env.NODE_ENV}). ` +
+          `Refusing to drop tables! Production/remote resets are permanently blocked without explicit authorization. ` +
+          `To override, you must supply CONFIRM_PRODUCTION_RESET=true or ALLOW_PRODUCTION_DROP=true.`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+    }
+
     console.log('[Migrator] Reset requested. Dropping all existing tables...');
+
     if (db.type === 'sqlite') {
       db.raw.pragma('foreign_keys = OFF');
       for (const table of TABLES_DROP_ORDER) {
@@ -93,11 +117,12 @@ async function runMigrations(dbInstance = null, options = {}) {
       db.raw.exec(sqlContent);
       db.raw.prepare('INSERT OR REPLACE INTO _migrations (name) VALUES (?)').run(migrationName);
     } else {
-      // MySQL: Execute individual statements
-      const statements = sqlContent
+      // MySQL: Strip comments and execute individual statements
+      const cleanedSql = sqlContent.replace(/--[^\r\n]*/g, '');
+      const statements = cleanedSql
         .split(';')
         .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith('--'));
+        .filter((s) => s.length > 0);
 
       for (const stmt of statements) {
         await db.query(stmt);

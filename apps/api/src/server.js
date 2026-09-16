@@ -37,21 +37,25 @@ function validateEnvironment() {
   }
 }
 
-async function startServer() {
+async function startServer(options = {}) {
   validateEnvironment();
 
   // 2. Database Connectivity Pre-flight
-  try {
-    const db = getDatabase();
-    await db.query('SELECT 1');
-    console.log(`[Database] Connected successfully (type: ${db.type}).`);
-  } catch (err) {
-    console.error('[Database] Pre-flight connection failed:', err.message);
-    process.exit(1);
+  let db = options.db;
+  if (!db) {
+    try {
+      db = getDatabase(options.dbConfig);
+      await db.query('SELECT 1');
+      console.log(`[Database] Connected successfully (type: ${db.type}).`);
+    } catch (err) {
+      console.error('[Database] Pre-flight connection failed:', err.message);
+      process.exit(1);
+    }
   }
 
   // 3. Initialize Express App
-  const app = createApp();
+  const app = createApp({ db });
+
 
   const server = app.listen(PORT, () => {
     console.log('=======================================================');

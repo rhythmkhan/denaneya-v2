@@ -9,15 +9,13 @@
  * - Defensive security headers (Helmet) & body size limits
  */
 
-process.env.NODE_ENV = 'test';
-process.env.DB_CLIENT = 'sqlite';
-process.env.DB_SQLITE_PATH = ':memory:';
+import './setup-test-env.js';
 
 import assert from 'node:assert';
-import dbPkg from '@denaneya/database';
-import { createApp } from '../src/app.js';
 
-const { getDatabase, runMigrations, runSeed } = dbPkg;
+const { default: dbPkg } = await import('@denaneya/database');
+const { getDatabase, setDatabase, resetDatabase, runMigrations, runSeed } = dbPkg;
+const { createApp } = await import('../src/app.js');
 
 console.log('===============================================================================');
 console.log('      DenaNeya v2.0 - apps/api Automated Integration Test Suite                ');
@@ -79,13 +77,15 @@ async function request(path, { method = 'GET', headers = {}, body = null } = {})
 
 async function setup() {
   console.log('[Setup] Initializing in-memory SQLite database singleton...');
-  db = getDatabase();
+  await resetDatabase();
+  db = getDatabase({ client: 'sqlite', sqlitePath: ':memory:', setAsGlobal: true });
+  setDatabase(db);
   await runMigrations(db, { reset: true });
-  await runSeed(db);
+  await runSeed(db, { clean: true, seedAll52: true });
   console.log('[Setup] Database migrations and demo seeds successfully loaded.');
 
   // Instantiate clean express app for testing
-  const app = createApp();
+  const app = createApp({ db });
   server = app.listen(0);
   const { port } = server.address();
   baseUrl = `http://127.0.0.1:${port}`;
@@ -100,9 +100,11 @@ async function teardown() {
   if (db) {
     await db.close();
   }
+  await resetDatabase();
   console.log('[Teardown] Clean shutdown completed.');
   console.log(`\nResults: ${passCount} Passed, ${failCount} Failed.`);
   if (failCount > 0) {
+
     process.exit(1);
   }
 }

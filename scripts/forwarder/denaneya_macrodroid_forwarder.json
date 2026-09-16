@@ -1,0 +1,95 @@
+{
+  "macro_name": "DenaNeya v2.0 MFS Carrier Sync & Telemetry",
+  "description": "Automated zero-commission carrier SMS ingestion and 15-minute hardware battery heartbeat for DenaNeya v2.0 payment automation platform.",
+  "version": "2.0",
+  "schema_version": 2,
+  "author": "DenaNeya Core Architecture",
+  "variables": [
+    {
+      "name": "dn_api_base",
+      "type": "string",
+      "value": "https://denaneya.aihaat.shop",
+      "description": "DenaNeya API host URL (without trailing slash)"
+    },
+    {
+      "name": "dn_device_token",
+      "type": "string",
+      "value": "tok_dev_YOUR_ACTUAL_DEVICE_TOKEN_HERE",
+      "description": "192-bit cryptographic device pairing token generated from merchant dashboard"
+    },
+    {
+      "name": "dn_sync_url",
+      "type": "string",
+      "value": "https://denaneya.aihaat.shop/api/device/sync-sms",
+      "description": "Direct carrier SMS ingestion endpoint"
+    },
+    {
+      "name": "dn_heartbeat_url",
+      "type": "string",
+      "value": "https://denaneya.aihaat.shop/api/device/heartbeat",
+      "description": "Periodic handset hardware telemetry & battery ping endpoint"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trg_carrier_sms",
+      "trigger_type": "sms_received",
+      "title": "Incoming Telco Carrier SMS",
+      "number_filter": "bKash, 16216, Nagad, 16222, Upay",
+      "match_type": "contains_any_case_insensitive",
+      "sim_selection": "all_sims",
+      "description": "Fires immediately when an official telecom carrier SMS is received from bKash, Rocket, Nagad, or Upay."
+    },
+    {
+      "id": "trg_heartbeat_timer",
+      "trigger_type": "regular_interval",
+      "title": "15-Minute Battery & Liveness Heartbeat",
+      "interval_minutes": 15,
+      "description": "Fires every 15 minutes to report battery percentage and keep handset status 'online' in dashboard."
+    }
+  ],
+  "actions": [
+    {
+      "id": "act_forward_sms",
+      "condition": "trigger == trg_carrier_sms",
+      "action_type": "http_request",
+      "title": "Forward Carrier SMS to DenaNeya API",
+      "method": "POST",
+      "url": "{lv=dn_sync_url}",
+      "content_type": "application/json",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Device-Token": "{lv=dn_device_token}",
+        "User-Agent": "DenaNeya-MacroDroid-Forwarder/2.0"
+      },
+      "body": "{\"sender\":\"[sms_number]\",\"body\":\"[sms_body]\",\"sim_slot\":1,\"timestamp\":[system_time]}",
+      "timeout_seconds": 15,
+      "retry_on_failure": true,
+      "retry_attempts": 3,
+      "retry_delay_seconds": 2
+    },
+    {
+      "id": "act_send_heartbeat",
+      "condition": "trigger == trg_heartbeat_timer",
+      "action_type": "http_request",
+      "title": "Send 15-Minute Hardware Telemetry Ping",
+      "method": "POST",
+      "url": "{lv=dn_heartbeat_url}",
+      "content_type": "application/json",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Device-Token": "{lv=dn_device_token}",
+        "User-Agent": "DenaNeya-MacroDroid-Heartbeat/2.0"
+      },
+      "body": "{\"battery_level\":[battery],\"sim1_operator\":\"[sim1_carrier]\",\"sim2_operator\":\"[sim2_carrier]\"}",
+      "timeout_seconds": 10,
+      "retry_on_failure": false
+    }
+  ],
+  "constraints": [],
+  "settings": {
+    "wake_lock_enabled": true,
+    "run_in_background": true,
+    "log_history": true
+  }
+}

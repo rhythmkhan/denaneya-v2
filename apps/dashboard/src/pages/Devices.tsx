@@ -33,6 +33,7 @@ import { Modal } from '../components/common/Modal';
 import apiClient from '../services/apiClient';
 import { useAuth } from '../context/AuthContext';
 import { Device } from '../types/dashboard';
+import QRCode from 'qrcode';
 
 export const Devices: React.FC = () => {
   const { brand } = useAuth();
@@ -42,7 +43,25 @@ export const Devices: React.FC = () => {
   const [deviceName, setDeviceName] = useState<string>('');
   const [deviceModel, setDeviceModel] = useState<string>('');
   const [pairingData, setPairingData] = useState<{ token: string; qr: string } | null>(null);
+  const [qrImageUrl, setQrImageUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (pairingData?.qr) {
+      QRCode.toDataURL(pairingData.qr, { width: 240, margin: 2, errorCorrectionLevel: 'M' })
+        .then(setQrImageUrl)
+        .catch((err) => {
+          console.error('[QRCode Error]', err);
+          setQrImageUrl('');
+        });
+    } else if (pairingData?.token) {
+      QRCode.toDataURL(pairingData.token, { width: 240, margin: 2, errorCorrectionLevel: 'M' })
+        .then(setQrImageUrl)
+        .catch(() => setQrImageUrl(''));
+    } else {
+      setQrImageUrl('');
+    }
+  }, [pairingData]);
 
   const fetchDevices = async () => {
     setIsLoading(true);
@@ -68,15 +87,15 @@ export const Devices: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await apiClient.devices.pair({
+      const res: any = await apiClient.devices.pair({
         device_name: deviceName.trim(),
         device_model: deviceModel.trim() || undefined
       });
 
       if (res.success) {
         setPairingData({
-          token: res.pairing_token,
-          qr: res.pairing_qr_data
+          token: res.pairing_token || res.device_token || res.device?.device_token,
+          qr: res.pairing_qr_data || res.device_token || res.pairing_token
         });
         await fetchDevices();
       }
@@ -92,9 +111,13 @@ export const Devices: React.FC = () => {
       return;
     }
     try {
-      const res = await apiClient.devices.rotateToken(deviceId);
+      const res: any = await apiClient.devices.rotateToken(deviceId);
       if (res.success) {
-        alert('Pairing token rotated. Please scan the new QR code on your handset.');
+        setPairingData({
+          token: res.device_token || res.pairing_token,
+          qr: res.pairing_qr_data || res.device_token || res.pairing_token
+        });
+        setIsPairModalOpen(true);
         await fetchDevices();
       }
     } catch (err: any) {
@@ -309,26 +332,32 @@ export const Devices: React.FC = () => {
         ) : (
           <div className="space-y-4 text-center py-2">
             <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs inline-block">
-              <div className="w-48 h-48 bg-slate-100 flex items-center justify-center rounded-lg font-mono text-xs text-slate-400 text-center p-4">
-                [QR Canvas Renderer]
-                <br />
-                {pairingData.token.slice(0, 16)}...
-              </div>
+              {qrImageUrl ? (
+                <img
+                  src={qrImageUrl}
+                  alt="DenaNeya Handset Pairing QR Code"
+                  className="w-48 h-48 mx-auto rounded-lg"
+                />
+              ) : (
+                <div className="w-48 h-48 bg-slate-100 flex items-center justify-center rounded-lg font-mono text-xs text-slate-400 text-center p-4">
+                  Generating Pairing QR...
+                </div>
+              )}
             </div>
 
             <div className="text-left space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
               <div>
                 <span className="text-slate-500 font-semibold block">Pairing Token:</span>
-                <code className="font-mono text-indigo-600 text-xs break-all">
+                <code className="font-mono text-indigo-600 text-xs break-all select-all">
                   {pairingData.token}
                 </code>
               </div>
               <div className="pt-2 border-t border-slate-200 text-slate-600">
-                1. Open the <strong>DenaNeya Forwarder APK</strong> on your handset.
+                1. Open <strong>MacroDroid</strong> or <strong>SMS Forwarder</strong> on your Android phone.
                 <br />
-                2. Tap &quot;Scan QR Code&quot; and point camera at the screen.
+                2. Scan this QR Code or set header <code>X-Device-Token</code> to the token above.
                 <br />
-                3. The handset will link and begin streaming SMS in real-time.
+                3. The handset will link and begin streaming carrier SMS in real time.
               </div>
             </div>
 
@@ -338,7 +367,7 @@ export const Devices: React.FC = () => {
               className="w-full"
               onClick={() => setIsPairModalOpen(false)}
             >
-              Done (Device Paired)
+              Done (Handset Linked)
             </Button>
           </div>
         )}

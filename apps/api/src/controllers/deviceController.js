@@ -527,6 +527,9 @@ export async function createDevice(req, res) {
         status: 'offline',
         created_at: nowIso
       },
+      device_id: deviceId,
+      device_token: deviceToken,
+      pairing_token: deviceToken,
       pairing_qr_data: JSON.stringify(pairingPayload)
     });
   } catch (err) {
@@ -624,11 +627,24 @@ export async function rotateDeviceToken(req, res) {
       [newToken, deviceId, brandId]
     );
 
+    const brandName = req.brand?.brand_name || 'DenaNeya Merchant';
+    const pairingPayload = {
+      version: '2.0',
+      brand_id: brandId,
+      brand_name: brandName,
+      device_id: deviceId,
+      device_token: newToken,
+      sync_endpoint: '/api/device/sync-sms',
+      heartbeat_endpoint: '/api/device/heartbeat'
+    };
+
     return res.status(200).json({
       success: true,
       message: 'Device token rotated successfully. Please update the handset immediately.',
       device_id: deviceId,
-      device_token: newToken
+      device_token: newToken,
+      pairing_token: newToken,
+      pairing_qr_data: JSON.stringify(pairingPayload)
     });
   } catch (err) {
     console.error('[rotateDeviceToken Error]', err);

@@ -1,0 +1,85 @@
+{
+  "version": 2,
+  "app": "SMS Forwarder",
+  "app_url": "https://github.com/pppssb/sms-forwarder",
+  "name": "DenaNeya v2.0 Carrier MFS Ingestion Webhook",
+  "description": "Turnkey export configuration for SMS Forwarder Android application to stream authentic bKash, Nagad, Rocket, and Upay carrier receipts directly to DenaNeya v2.0 API engine.",
+  "channel": {
+    "type": "webhook",
+    "channel_name": "DenaNeya Ingestion Endpoint",
+    "target_url": "https://denaneya.aihaat.shop/api/device/sync-sms",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Device-Token": "tok_dev_REPLACE_WITH_YOUR_ACTUAL_DEVICE_TOKEN"
+    },
+    "body_template": "{\"from\":\"[from]\",\"body\":\"[body]\",\"sim_slot\":[sim_slot],\"timestamp\":\"[timestamp]\"}",
+    "timeout_ms": 15000,
+    "retry_count": 3,
+    "retry_interval_ms": 2000,
+    "success_status_codes": [200, 201]
+  },
+  "rules": [
+    {
+      "id": "rule_btrc_mfs_receipts",
+      "name": "BTRC Telecom MFS Whitelist Rule",
+      "enabled": true,
+      "event_type": "sms",
+      "sim_slot": "ALL",
+      "sender_filter": {
+        "mode": "WHITELIST",
+        "match_type": "EXACT_OR_CONTAINS_CASE_INSENSITIVE",
+        "allowed_senders": [
+          "bKash",
+          "16216",
+          "Nagad",
+          "16222",
+          "Upay"
+        ]
+      },
+      "body_filter": {
+        "mode": "CONTAINS_ANY",
+        "keywords": [
+          "You have received",
+          "received Tk",
+          "Money Received",
+          "TrxID",
+          "TxnID"
+        ]
+      },
+      "exclude_filter": {
+        "mode": "EXCLUDE_IF_CONTAINS",
+        "forbidden_keywords": [
+          "Cash Out",
+          "Cashout",
+          "Send Money",
+          "Payment to",
+          "Paid to",
+          "Mobile Recharge"
+        ]
+      },
+      "action": "SEND_TO_WEBHOOK"
+    }
+  ],
+  "telemetry_channel": {
+    "type": "webhook",
+    "channel_name": "DenaNeya Battery Telemetry",
+    "target_url": "https://denaneya.aihaat.shop/api/device/heartbeat",
+    "method": "POST",
+    "interval_minutes": 15,
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Device-Token": "tok_dev_REPLACE_WITH_YOUR_ACTUAL_DEVICE_TOKEN"
+    },
+    "body_template": "{\"battery_level\":[battery],\"sim1_operator\":\"[sim1_carrier]\",\"sim2_operator\":\"[sim2_carrier]\"}"
+  },
+  "import_instructions": [
+    "1. In SMS Forwarder, navigate to Settings -> Sender Channels -> Add Channel -> Webhook.",
+    "2. Enter the Target URL from your pairing payload (e.g. https://denaneya.aihaat.shop/api/device/sync-sms).",
+    "3. Set Request Method to POST.",
+    "4. Under Headers, add 'X-Device-Token' with your 192-bit pairing token.",
+    "5. Under Body Template, paste: {\"from\":\"[from]\",\"body\":\"[body]\",\"sim_slot\":[sim_slot],\"timestamp\":\"[timestamp]\"}.",
+    "6. Under Forwarding Rules, add Sender Whitelist: 'bKash;16216;Nagad;16222;Upay'.",
+    "7. Save and enable the rule. Send a test SMS to confirm 201 Created."
+  ]
+}

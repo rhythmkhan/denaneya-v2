@@ -9,9 +9,37 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const Database = require('better-sqlite3');
-const { dbConfig } = require('./config.js');
+const { dbConfig, getDbConfig, isTestEnvironment } = require('./config.js');
 
 let globalInstance = null;
+
+/**
+ * Explicitly set the active database singleton instance (Dependency Injection).
+ * @param {Object} instance - Database driver interface
+ * @returns {Object} Active driver instance
+ */
+function setDatabase(instance) {
+  globalInstance = instance;
+  return globalInstance;
+}
+
+/**
+ * Reset/clear the active singleton database driver instance.
+ * @returns {Promise<void>}
+ */
+function resetDatabase() {
+  const prev = globalInstance;
+  globalInstance = null;
+  if (prev && typeof prev.close === 'function') {
+    try {
+      const p = prev.close();
+      if (p && typeof p.then === 'function') {
+        return p.catch(() => {});
+      }
+    } catch (_) {}
+  }
+  return Promise.resolve();
+}
 
 /**
  * Instantiate or return the singleton database driver instance.
@@ -19,14 +47,34 @@ let globalInstance = null;
  * @returns {Object} Unified database driver interface
  */
 function getDatabase(configOverride = {}) {
-  const cfg = { ...dbConfig, ...configOverride };
+  const currentCfg = typeof getDbConfig === 'function' ? getDbConfig() : dbConfig;
+  const cfg = { ...currentCfg, ...configOverride };
 
   // If a singleton exists and no override was passed, reuse it
   if (globalInstance && Object.keys(configOverride).length === 0) {
     return globalInstance;
   }
 
+  // CIRCUIT BREAKER / KILL SWITCH:
+  // Hard block against accidental remote MySQL connections during test runs
+  const isTest = typeof isTestEnvironment === 'function'
+    ? isTestEnvironment()
+    : (process.env.NODE_ENV === 'test' || process.env.npm_lifecycle_event === 'test');
+
+  if (cfg.client === 'mysql') {
+    const isRemote = cfg.host && !['localhost', '127.0.0.1', '::1'].includes(cfg.host);
+    if (isTest && isRemote && process.env.ALLOW_REMOTE_TEST_DB !== 'true') {
+      throw new Error(
+        `[DATABASE CIRCUIT BREAKER FATAL] Remote MySQL connection BLOCKED in test environment!\n` +
+        `Attempted target: ${cfg.host}:${cfg.port}/${cfg.database}.\n` +
+        `All automated tests MUST use in-memory SQLite ({ client: 'sqlite', sqlitePath: ':memory:' }).\n` +
+        `If running an authorized live DB check, set ALLOW_REMOTE_TEST_DB=true.`
+      );
+    }
+  }
+
   let driver = null;
+
 
   if (cfg.client === 'mysql') {
     const pool = mysql.createPool({
@@ -197,7 +245,17 @@ function getDatabase(configOverride = {}) {
     };
   }
 
-  if (Object.keys(configOverride).length === 0) {
+  // Bind to globalInstance if:
+  // 1. No global instance currently exists, OR
+  // 2. configOverride explicitly specifies setAsGlobal: true, OR
+  // 3. No configOverride keys were supplied, OR
+  // 4. In test mode and configOverride creates an isolated SQLite instance
+  if (
+    !globalInstance ||
+    configOverride.setAsGlobal ||
+    Object.keys(configOverride).length === 0 ||
+    (isTest && configOverride.client === 'sqlite')
+  ) {
     globalInstance = driver;
   }
 
@@ -205,5 +263,8 @@ function getDatabase(configOverride = {}) {
 }
 
 module.exports = {
-  getDatabase
+  getDatabase,
+  setDatabase,
+  resetDatabase
 };
+

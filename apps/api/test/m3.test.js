@@ -12,15 +12,16 @@
  * 7. End-to-End HTTP Route Integration (/api/device, /api/devices, /api/payment, /v1/trx)
  */
 
-process.env.NODE_ENV = 'test';
-process.env.DB_CLIENT = 'sqlite';
-process.env.DB_SQLITE_PATH = ':memory:';
+import './setup-test-env.js';
 
 import assert from 'node:assert';
 import http from 'node:http';
 import crypto from 'node:crypto';
-import dbPkg from '@denaneya/database';
-import {
+
+const { default: dbPkg } = await import('@denaneya/database');
+const { getDatabase, setDatabase, resetDatabase, runMigrations, runSeed } = dbPkg;
+
+const {
   isTelecomSenderWhitelisted,
   resolveProviderFromSender,
   checkDebitBlacklist,
@@ -32,21 +33,21 @@ import {
   isProhibitedIP,
   toPaisa,
   fromPaisa
-} from '@denaneya/shared';
+} = await import('@denaneya/shared');
 
-import webhookService, {
+const { default: webhookService, ...webhookUtils } = await import('../src/services/webhookService.js');
+const {
   unescapeHtmlEntities,
   normalizeWebhookUrl,
   validateOutboundUrl,
   enqueueWebhookEvent,
   dispatchSingleWebhook,
   dispatchWithRetries
-} from '../src/services/webhookService.js';
+} = webhookUtils;
 
-import { expirePendingInvoices } from '../src/services/invoiceReaperService.js';
-import { createApp } from '../src/app.js';
+const { expirePendingInvoices } = await import('../src/services/invoiceReaperService.js');
+const { createApp } = await import('../src/app.js');
 
-const { getDatabase, runMigrations, runSeed } = dbPkg;
 
 console.log('===============================================================================');
 console.log('      DenaNeya v2.0 - Milestone 3 Master Integration Test Harness              ');
@@ -103,9 +104,11 @@ async function request(path, { method = 'GET', headers = {}, body = null } = {})
 // -----------------------------------------------------------------------------
 async function setupHarness() {
   console.log('[Setup] Initializing in-memory SQLite database singleton...');
-  db = getDatabase();
+  await resetDatabase();
+  db = getDatabase({ client: 'sqlite', sqlitePath: ':memory:', setAsGlobal: true });
+  setDatabase(db);
   await runMigrations(db, { reset: true });
-  await runSeed(db);
+  await runSeed(db, { clean: true, seedAll52: true });
   console.log('[Setup] Migrations and seed fixtures loaded.');
 
   // Start local mock webhook receiver server
@@ -141,7 +144,7 @@ async function setupHarness() {
   console.log(`[Setup] Mock merchant webhook receiver active on ${mockReceiverUrl}`);
 
   // Start express test HTTP server
-  const app = createApp();
+  const app = createApp({ db });
   await new Promise((resolve) => {
     testHttpServer = app.listen(0, '127.0.0.1', resolve);
   });
@@ -161,6 +164,7 @@ async function teardownHarness() {
   if (db) {
     await db.close();
   }
+  await resetDatabase();
   console.log(`[Teardown] Execution finished: ${passCount} Passed, ${failCount} Failed.`);
 }
 
@@ -352,7 +356,7 @@ async function runAllTests() {
       );
     } catch (err) {
       duplicateCaught = true;
-      assert.ok(err.message.includes('UNIQUE') || err.message.includes('constraint'));
+      assert.ok(err.message.includes('UNIQUE') || err.message.includes('constraint') || err.message.includes('Duplicate entry') || err.code === 'ER_DUP_ENTRY');
     }
     assert.strictEqual(duplicateCaught, true, 'Unique index (brand_id, trx_id) prevents duplicate transaction entry');
   });
@@ -647,11 +651,12 @@ async function runAllTests() {
     mockReceiverBehavior = { statusCode: 200, responseBody: '{"received":true}', failCountBeforeSuccess: 0 };
     lastReceivedWebhook = null;
 
+    const hmacExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
     await db.query(
       `INSERT INTO invoices (
          id, brand_id, invoice_number, customer_name, amount, status, expires_at
-       ) VALUES ('inv_m3_test_101', ?, 'INV-HMAC-01', 'HMAC Customer', 1250.00, 'PAID', datetime('now', '+15 minutes'))`,
-      [hmacBrandId]
+       ) VALUES ('inv_m3_test_101', ?, 'INV-HMAC-01', 'HMAC Customer', 1250.00, 'PAID', ?)`,
+      [hmacBrandId, hmacExpiresAt]
     );
 
     const { logId } = await enqueueWebhookEvent(hmacBrandId, 'inv_m3_test_101', 'invoice.completed', webhookPayload);
@@ -882,11 +887,12 @@ async function runAllTests() {
     );
 
     const chkInvoiceId = 'inv_chk_8888';
+    const chkExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
     await db.query(
       `INSERT INTO invoices (
          id, brand_id, invoice_number, customer_name, amount, status, expires_at
-       ) VALUES (?, ?, 'INV-CHK-88', 'Checkout Customer', 950.00, 'PENDING', datetime('now', '+15 minutes'))`,
-      [chkInvoiceId, testBrandId]
+       ) VALUES (?, ?, 'INV-CHK-88', 'Checkout Customer', 950.00, 'PENDING', ?)`,
+      [chkInvoiceId, testBrandId, chkExpiresAt]
     );
 
     const res = await request('/api/payment/submit-trx', {

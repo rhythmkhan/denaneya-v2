@@ -8,11 +8,16 @@
 import express from 'express';
 import apiKeyAuth from '../middlewares/apiKeyAuth.js';
 import v1TrxController from '../controllers/v1TrxController.js';
+import v1PaymentController from '../controllers/v1PaymentController.js';
 
 const router = express.Router();
 
 // Enforce S2S API Key & Secret Authentication
 router.use(apiKeyAuth);
+
+// WooCommerce / S2S Payment Invoice Creation & Verification
+router.post('/payment/create', v1PaymentController.createPaymentInvoice);
+router.post('/payment/verify', v1PaymentController.verifyPaymentInvoice);
 
 // Step 1: Verify UNUSED transaction exists and deduct 1 credit
 router.post('/trx/verify', v1TrxController.verifyTrx);

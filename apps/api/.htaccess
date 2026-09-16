@@ -30,6 +30,11 @@
   RewriteCond %{REQUEST_URI} ^/health
   RewriteRule ^(.*)$ http://127.0.0.1:3001/$1 [P,L]
 
+  # 4. React SPA Fallback: Serve existing static files/assets, else fallback to index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+
 </IfModule>
 
 # 4. Prevent Directory Browsing & Server Signature Leakage

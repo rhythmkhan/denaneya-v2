@@ -19,9 +19,19 @@ import gatewayRoutes from './routes/gatewayRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
 import v1Routes from './routes/v1Routes.js';
+import dbPkg from '@denaneya/database';
 
-export function createApp() {
+const { getDatabase, setDatabase } = dbPkg;
+
+export function createApp(options = {}) {
+  // Inject database instance if provided
+  if (options.db) {
+    setDatabase(options.db);
+  }
+
   const app = express();
+  app.locals.db = options.db || getDatabase();
+
 
   // 1. Trust Reverse Proxy (Hostinger / Apache / Cloudflare)
   app.set('trust proxy', 1);

@@ -1,0 +1,30 @@
+/**
+ * DenaNeya Payment Gateway - Frontend Checkout Styles
+ */
+
+.payment_method_denaneya .denaneya-badge-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.payment_method_denaneya .denaneya-channel-icon {
+    height: 24px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.payment_method_denaneya .denaneya-zero-fee-tag {
+    display: inline-block;
+    background: #ecfdf5;
+    color: #059669;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    border: 1px solid #a7f3d0;
+}

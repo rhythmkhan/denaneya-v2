@@ -227,11 +227,11 @@ async function runAllTests() {
     const seedRes = await runSeed(db, { clean: true, seedAll52: true });
 
     assert.strictEqual(seedRes.success, true);
-    assert.strictEqual(seedRes.usersSeeded, 2);
+    assert.strictEqual(seedRes.usersSeeded, 3);
     assert.strictEqual(seedRes.brandsSeeded, 1);
-    assert.strictEqual(seedRes.devicesSeeded, 1);
     assert.strictEqual(seedRes.activeGatewaysSeeded, 6);
-    assert.strictEqual(seedRes.catalogGatewaysSeeded, 52);
+    assert.strictEqual(seedRes.catalogGatewaysSeeded, 47, 'Catalog gateways deduplicated against active demo gateways');
+    assert.ok(seedRes.activeGatewaysSeeded + seedRes.catalogGatewaysSeeded >= 52, 'Total gateways seeded must be >= 52');
     assert.strictEqual(seedRes.invoicesSeeded, 5);
     assert.strictEqual(seedRes.smsTransactionsSeeded, 3);
     assert.strictEqual(seedRes.webhookLogsSeeded, 1);

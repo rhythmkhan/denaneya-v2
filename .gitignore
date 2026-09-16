@@ -8,6 +8,7 @@ build/
 .next/
 out/
 *.zip
+!denaneya-payment-gateway.zip
 
 
 # Environment files
