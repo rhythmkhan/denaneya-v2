@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">দেনা নেয়া ফরোয়ার্ডার</string>
+    <string name="app_name_en">DenaNeya Forwarder</string>
+    <string name="service_running_title">দেনা নেয়া এসএমএস ফরোয়ার্ডার সক্রিয়</string>
+    <string name="service_running_desc">ব্যাকগ্রাউন্ডে MFS এসএমএস রিসিভ ও সিঙ্ক হচ্ছে…</string>
+    <string name="channel_name">ফরোয়ার্ডার সার্ভিস চ্যানেল</string>
+    <string name="channel_desc">রিয়েল-টাইম এসএমএস ফরওয়ার্ডিং এবং ব্যাকগ্রাউন্ড স্ট্যাটাস</string>
+</resources>

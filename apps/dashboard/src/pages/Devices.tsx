@@ -274,6 +274,44 @@ export const Devices: React.FC = () => {
         </div>
       </div>
 
+      {/* Official Android App Download Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 p-6 text-white shadow-lg border border-emerald-500/20">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>দেনা নেয়া অফিসিয়াল অ্যাপ • v2.0.0 Release</span>
+            </div>
+            <h3 className="text-lg md:text-xl font-bold tracking-tight text-white">
+              দেনা নেয়া অ্যান্ড্রয়েড এসএমএস ফরোয়ার্ডার (DenaNeya Forwarder)
+            </h3>
+            <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
+              আপনার মার্চেন্ট হ্যান্ডসেটে (বিকাশ, নগদ, রকেট, উপায় সিম যুক্ত ফোনে) অ্যাপটি ইনস্টল করুন। ব্যাকগ্রাউন্ডে স্বয়ংক্রিয়ভাবে এসএমএস রিসিভ করে সার্ভারের সাথে ইনস্ট্যান্ট পেমেন্ট ভেরিফাই ও রিকনসাইল করবে।
+            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-emerald-200/80">
+              <span className="px-2 py-0.5 rounded-md bg-white/10">✓ নো রুট প্রয়োজন</span>
+              <span className="px-2 py-0.5 rounded-md bg-white/10">✓ অটো বুট স্টার্ট</span>
+              <span className="px-2 py-0.5 rounded-md bg-white/10">✓ BTRC টেলিকম ফিল্টার</span>
+              <span className="px-2 py-0.5 rounded-md bg-white/10">✓ লাইভ কিউআর স্ক্যান পেয়ারিং</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-3 shrink-0">
+            <a
+              href="/denaneya-forwarder-v2.0.apk"
+              download="denaneya-forwarder-v2.0.apk"
+              className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-md transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-slate-950" />
+              <span>ডাউনলোড অ্যান্ড্রয়েড এপিকে (.APK)</span>
+            </a>
+            <span className="text-[11px] text-slate-400 font-mono">
+              Android 7.0 - 15+ সাপোর্টেড • 11.9 MB
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Handsets List Table */}
       <Card
         title="Paired Mobile Forwarders"
